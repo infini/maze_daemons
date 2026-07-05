@@ -5,6 +5,7 @@ export const defaultPlayerSkinId: PlayerSkinId = 'zombie';
 export const defaultProgress: ProgressState = {
   coins: 0,
   collectedCoinKeys: [],
+  completedStageKeys: [],
   purchasedTrailEffectIds: [],
   selectedTrailEffectId: null,
   purchasedSkinIds: [],

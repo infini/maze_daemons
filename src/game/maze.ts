@@ -115,40 +115,6 @@ export function movePlayer(
   );
 }
 
-export function movePlayerTo(
-  level: PreparedLevel,
-  state: GameState,
-  target: Position,
-  trailVisibleMs: number,
-  trailNowMs: number,
-): GameState {
-  if (state.isWon || samePosition(state.player, target)) {
-    return state;
-  }
-
-  const sameRow = state.player.row === target.row;
-  const sameCol = state.player.col === target.col;
-  if (!sameRow && !sameCol) {
-    return state;
-  }
-
-  const rowStep = sameRow ? 0 : target.row > state.player.row ? 1 : -1;
-  const colStep = sameCol ? 0 : target.col > state.player.col ? 1 : -1;
-  const path: Position[] = [];
-  let cursor = {
-    row: state.player.row + rowStep,
-    col: state.player.col + colStep,
-  };
-
-  while (!samePosition(cursor, target)) {
-    path.push(cursor);
-    cursor = { row: cursor.row + rowStep, col: cursor.col + colStep };
-  }
-  path.push(target);
-
-  return applyPath(level, state, path, trailVisibleMs, trailNowMs);
-}
-
 export function buildTrailMap(
   trails: GameState['trails'],
   now: number,

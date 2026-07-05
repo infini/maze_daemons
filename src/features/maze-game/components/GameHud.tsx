@@ -4,7 +4,6 @@ import { skinItems, trailEffectItems } from '../../../data/shop';
 import { playerImages } from '../../../game/assets';
 import type {
   DifficultyData,
-  Direction,
   PlayerSkinId,
   ProgressState,
   ShopSkinId,
@@ -27,7 +26,6 @@ export function GameHud({
   isPaused,
   levelLabel,
   moves,
-  onDirectionPress,
   onEquipSkin,
   onEquipTrailEffect,
   onLoadStage,
@@ -44,6 +42,7 @@ export function GameHud({
   stageIndex,
   stagesInDifficulty,
   statusText,
+  unlockedDifficultyIds,
   won,
 }: {
   boardHeight: number;
@@ -58,7 +57,6 @@ export function GameHud({
   isPaused: boolean;
   levelLabel: string;
   moves: number;
-  onDirectionPress: (direction: Direction) => void;
   onEquipSkin: (skinId: PlayerSkinId) => void;
   onEquipTrailEffect: (effectId: TrailEffectId | null) => void;
   onLoadStage: (index: number) => void;
@@ -75,6 +73,7 @@ export function GameHud({
   stageIndex: number;
   stagesInDifficulty: number;
   statusText: string;
+  unlockedDifficultyIds: Set<string>;
   won: boolean;
 }) {
   const [shopOpen, setShopOpen] = useState(false);
@@ -104,6 +103,7 @@ export function GameHud({
           activeIndex={difficultyIndex}
           difficulties={difficulties}
           onSelect={onSelectDifficulty}
+          unlockedDifficultyIds={unlockedDifficultyIds}
         />
 
         <View style={styles.iconCluster}>
@@ -134,8 +134,6 @@ export function GameHud({
             이동 {moves} · 코인 {collectedCoinCountInLevel}/{coinCountInLevel}
           </Text>
         </View>
-
-        <DPad disabled={!hasStarted || isPaused || won} onDirectionPress={onDirectionPress} />
 
         <View style={styles.stageNavRow}>
           <StageNavButton
@@ -176,10 +174,12 @@ function DifficultySelector({
   activeIndex,
   difficulties,
   onSelect,
+  unlockedDifficultyIds,
 }: {
   activeIndex: number;
   difficulties: DifficultyData[];
   onSelect: (index: number) => void;
+  unlockedDifficultyIds: Set<string>;
 }) {
   return (
     <ScrollView
@@ -189,13 +189,16 @@ function DifficultySelector({
     >
       {difficulties.map((difficulty, index) => {
         const selected = index === activeIndex;
+        const unlocked = unlockedDifficultyIds.has(difficulty.id);
         return (
           <Pressable
+            disabled={!unlocked}
             key={difficulty.id}
             onPress={() => onSelect(index)}
             style={({ pressed }) => [
               styles.difficultyButton,
               selected ? styles.difficultyButtonSelected : null,
+              !unlocked ? styles.difficultyButtonLocked : null,
               pressed ? styles.difficultyButtonPressed : null,
             ]}
           >
@@ -205,6 +208,7 @@ function DifficultySelector({
               style={[
                 styles.difficultyButtonText,
                 selected ? styles.difficultyButtonTextSelected : null,
+                !unlocked ? styles.difficultyButtonTextLocked : null,
               ]}
             >
               {difficulty.label}
@@ -213,30 +217,6 @@ function DifficultySelector({
         );
       })}
     </ScrollView>
-  );
-}
-
-function DPad({
-  disabled,
-  onDirectionPress,
-}: {
-  disabled: boolean;
-  onDirectionPress: (direction: Direction) => void;
-}) {
-  return (
-    <View style={styles.dpad}>
-      <View style={styles.dpadRow}>
-        <DPadButton disabled={disabled} label="↑" onPress={() => onDirectionPress('up')} />
-      </View>
-      <View style={styles.dpadRow}>
-        <DPadButton disabled={disabled} label="←" onPress={() => onDirectionPress('left')} />
-        <View style={styles.dpadSpacer} />
-        <DPadButton disabled={disabled} label="→" onPress={() => onDirectionPress('right')} />
-      </View>
-      <View style={styles.dpadRow}>
-        <DPadButton disabled={disabled} label="↓" onPress={() => onDirectionPress('down')} />
-      </View>
-    </View>
   );
 }
 
@@ -521,32 +501,6 @@ function IconButton({
   );
 }
 
-function DPadButton({
-  disabled,
-  label,
-  onPress,
-}: {
-  disabled: boolean;
-  label: string;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      disabled={disabled}
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.dpadButton,
-        disabled ? styles.dpadButtonDisabled : null,
-        pressed ? styles.dpadButtonPressed : null,
-      ]}
-    >
-      <Text style={[styles.dpadButtonText, disabled ? styles.dpadButtonTextDisabled : null]}>
-        {label}
-      </Text>
-    </Pressable>
-  );
-}
-
 const styles = StyleSheet.create({
   controlPanel: {
     alignSelf: 'center',
@@ -616,6 +570,9 @@ const styles = StyleSheet.create({
     borderColor: '#65E7FF',
     backgroundColor: '#17324C',
   },
+  difficultyButtonLocked: {
+    opacity: 0.42,
+  },
   difficultyButtonPressed: {
     backgroundColor: '#24365F',
   },
@@ -626,6 +583,9 @@ const styles = StyleSheet.create({
   },
   difficultyButtonTextSelected: {
     color: '#F4EBD0',
+  },
+  difficultyButtonTextLocked: {
+    color: '#6F7890',
   },
   iconCluster: {
     minHeight: 42,
@@ -729,47 +689,6 @@ const styles = StyleSheet.create({
     color: '#65E7FF',
     fontSize: 12,
     fontWeight: '800',
-  },
-  dpad: {
-    alignItems: 'center',
-    gap: 5,
-    paddingVertical: 2,
-  },
-  dpadRow: {
-    minHeight: 38,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 5,
-  },
-  dpadSpacer: {
-    width: 38,
-    height: 38,
-  },
-  dpadButton: {
-    width: 58,
-    height: 38,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: '#5A6D9B',
-    backgroundColor: '#19243F',
-  },
-  dpadButtonPressed: {
-    backgroundColor: '#24365F',
-  },
-  dpadButtonDisabled: {
-    borderColor: '#26314F',
-    backgroundColor: '#0D1326',
-  },
-  dpadButtonText: {
-    color: '#F4EBD0',
-    fontSize: 21,
-    lineHeight: 23,
-    fontWeight: '900',
-  },
-  dpadButtonTextDisabled: {
-    color: '#4F5B78',
   },
   stageNavRow: {
     minHeight: 42,

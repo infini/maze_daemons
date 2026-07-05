@@ -117,6 +117,7 @@ export type SkinItem = {
 export type ProgressState = {
   coins: number;
   collectedCoinKeys: string[];
+  completedStageKeys: string[];
   purchasedTrailEffectIds: TrailEffectId[];
   selectedTrailEffectId: TrailEffectId | null;
   purchasedSkinIds: ShopSkinId[];

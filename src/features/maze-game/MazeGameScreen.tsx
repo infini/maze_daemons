@@ -47,7 +47,6 @@ export function MazeGameScreen() {
           boardWidth={boardWidth}
           cellSize={cellSize}
           gameState={game.gameState}
-          hasStarted={game.hasStarted}
           hiddenCoinIds={game.hiddenCoinIds}
           isPaused={game.isPaused}
           level={game.level}
@@ -70,7 +69,6 @@ export function MazeGameScreen() {
           isPaused={game.isPaused}
           levelLabel={game.level.difficultyLabel}
           moves={game.gameState.moves}
-          onDirectionPress={game.onDirectionPress}
           onEquipSkin={game.onEquipSkin}
           onEquipTrailEffect={game.onEquipTrailEffect}
           onLoadStage={game.loadStage}
@@ -87,6 +85,7 @@ export function MazeGameScreen() {
           stageIndex={game.stageIndex}
           stagesInDifficulty={game.stagesInDifficulty}
           statusText={game.statusText}
+          unlockedDifficultyIds={game.unlockedDifficultyIds}
           won={game.gameState.isWon}
         />
       </View>
@@ -106,8 +105,8 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 8,
-    gap: 10,
+    padding: 4,
+    gap: 8,
   },
   stageSide: {
     flexDirection: 'row',
@@ -115,7 +114,7 @@ const styles = StyleSheet.create({
   stageStacked: {
     flexDirection: 'column',
     justifyContent: 'flex-start',
-    paddingTop: 32,
+    paddingTop: 10,
     paddingBottom: 72,
   },
 });

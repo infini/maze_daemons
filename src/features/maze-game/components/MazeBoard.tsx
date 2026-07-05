@@ -16,7 +16,6 @@ export function MazeBoard({
   boardWidth,
   cellSize,
   gameState,
-  hasStarted,
   hiddenCoinIds,
   isPaused,
   level,
@@ -31,7 +30,6 @@ export function MazeBoard({
   boardWidth: number;
   cellSize: number;
   gameState: GameState;
-  hasStarted: boolean;
   hiddenCoinIds: Set<string>;
   isPaused: boolean;
   level: PreparedLevel;
@@ -43,10 +41,10 @@ export function MazeBoard({
 }) {
   return (
     <Pressable
-      disabled={!hasStarted || isPaused || gameState.isWon}
+      disabled={isPaused || gameState.isWon}
       onPress={(event) => {
-        const col = Math.floor(event.nativeEvent.locationX / cellSize);
-        const row = Math.floor(event.nativeEvent.locationY / cellSize);
+        const col = clamp(Math.floor(event.nativeEvent.locationX / cellSize), 0, level.width - 1);
+        const row = clamp(Math.floor(event.nativeEvent.locationY / cellSize), 0, level.height - 1);
         onCellPress({ row, col });
       }}
       style={[styles.boardFrame, { width: boardWidth, height: boardHeight }]}
@@ -60,6 +58,7 @@ export function MazeBoard({
           return (
             <View
               key={key}
+              pointerEvents="none"
               style={[
                 styles.cell,
                 cell.kind === 'wall' ? styles.wallCell : styles.floorCell,
@@ -115,6 +114,10 @@ export function MazeBoard({
       ) : null}
     </Pressable>
   );
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, value));
 }
 
 const styles = StyleSheet.create({

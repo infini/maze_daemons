@@ -8,7 +8,6 @@ import {
   coinKey,
   createInitialState,
   movePlayer,
-  movePlayerTo,
   prepareLevel,
 } from '../../../game/maze';
 import type {
@@ -64,6 +63,19 @@ export function useMazeDaemonsGame() {
   const hiddenCoinIds = useMemo(
     () => new Set([...persistedCoinIds, ...gameState.collectedCoinIds]),
     [gameState.collectedCoinIds, persistedCoinIds],
+  );
+  const completedStageIds = useMemo(
+    () => new Set(progress.completedStageKeys),
+    [progress.completedStageKeys],
+  );
+  const unlockedDifficultyIds = useMemo(
+    () =>
+      new Set(
+        difficulties
+          .filter((_, index) => isDifficultyUnlocked(index, completedStageIds))
+          .map((unlockedDifficulty) => unlockedDifficulty.id),
+      ),
+    [completedStageIds],
   );
 
   useEffect(() => {
@@ -124,18 +136,26 @@ export function useMazeDaemonsGame() {
       const newlyCollectedCoinIds = nextGameState.collectedCoinIds.filter(
         (coinId) => !previousCoinIds.has(coinId),
       );
-      const newCoinKeys = newlyCollectedCoinIds
-        .map((coinId) => coinKey(level.id, coinId))
-        .filter((key) => !progress.collectedCoinKeys.includes(key));
+      const completedStageKey = nextGameState.isWon ? level.id : null;
 
       setNow(timestamp);
       setGameState(nextGameState);
 
-      if (newCoinKeys.length > 0) {
+      if (newlyCollectedCoinIds.length > 0 || completedStageKey) {
         setProgress((current) => ({
           ...current,
-          coins: current.coins + newCoinKeys.length,
-          collectedCoinKeys: unique([...current.collectedCoinKeys, ...newCoinKeys]),
+          coins:
+            current.coins +
+            newlyCollectedCoinIds
+              .map((coinId) => coinKey(level.id, coinId))
+              .filter((key) => !current.collectedCoinKeys.includes(key)).length,
+          collectedCoinKeys: unique([
+            ...current.collectedCoinKeys,
+            ...newlyCollectedCoinIds.map((coinId) => coinKey(level.id, coinId)),
+          ]),
+          completedStageKeys: completedStageKey
+            ? unique([...current.completedStageKeys, completedStageKey])
+            : current.completedStageKeys,
         }));
       }
 
@@ -143,17 +163,22 @@ export function useMazeDaemonsGame() {
         setTimerState((current) => finishTimer(current, timestamp));
       }
     },
-    [gameState, level.id, progress.collectedCoinKeys],
+    [gameState, level.id],
   );
 
-  const moveInDirection = useCallback(
-    (direction: Direction) => {
-      if (!hasStarted || isPaused || gameState.isWon) {
+  const moveToCell = useCallback(
+    (target: Position) => {
+      if (isPaused || gameState.isWon) {
+        return;
+      }
+
+      const direction = getDirectionFromTap(gameState.player, target);
+      if (!direction) {
         return;
       }
 
       const timestamp = Date.now();
-      const elapsedAtMove = getElapsedMs(timerState, timestamp);
+      const elapsedAtMove = hasStarted ? getElapsedMs(timerState, timestamp) : 0;
       const nextGameState = movePlayer(
         level,
         gameState,
@@ -161,26 +186,13 @@ export function useMazeDaemonsGame() {
         trailVisibleMs,
         elapsedAtMove,
       );
-      commitNextState(nextGameState, timestamp);
-    },
-    [commitNextState, gameState, hasStarted, isPaused, level, timerState, trailVisibleMs],
-  );
-
-  const moveToCell = useCallback(
-    (target: Position) => {
-      if (!hasStarted || isPaused || gameState.isWon) {
+      if (nextGameState === gameState) {
         return;
       }
 
-      const timestamp = Date.now();
-      const elapsedAtMove = getElapsedMs(timerState, timestamp);
-      const nextGameState = movePlayerTo(
-        level,
-        gameState,
-        target,
-        trailVisibleMs,
-        elapsedAtMove,
-      );
+      if (!hasStarted) {
+        setTimerState((current) => startTimer(current, timestamp));
+      }
       commitNextState(nextGameState, timestamp);
     },
     [commitNextState, gameState, hasStarted, isPaused, level, timerState, trailVisibleMs],
@@ -215,16 +227,28 @@ export function useMazeDaemonsGame() {
 
   const loadStage = useCallback(
     (nextIndex: number) => {
-      setStageIndex(Math.max(0, Math.min(difficulty.stages.length - 1, nextIndex)));
+      const clampedIndex = Math.max(0, Math.min(difficulty.stages.length - 1, nextIndex));
+      if (!isStageUnlocked(difficultyIndex, clampedIndex, completedStageIds)) {
+        setShopMessage('이전 스테이지를 먼저 클리어해야 합니다.');
+        return;
+      }
+      setStageIndex(clampedIndex);
     },
-    [difficulty.stages.length],
+    [completedStageIds, difficulty.stages.length, difficultyIndex],
   );
 
-  const selectDifficulty = useCallback((nextDifficultyIndex: number) => {
-    const clampedIndex = Math.max(0, Math.min(difficulties.length - 1, nextDifficultyIndex));
-    setDifficultyIndex(clampedIndex);
-    setStageIndex(0);
-  }, []);
+  const selectDifficulty = useCallback(
+    (nextDifficultyIndex: number) => {
+      const clampedIndex = Math.max(0, Math.min(difficulties.length - 1, nextDifficultyIndex));
+      if (!isDifficultyUnlocked(clampedIndex, completedStageIds)) {
+        setShopMessage('이전 난이도의 모든 스테이지를 클리어해야 합니다.');
+        return;
+      }
+      setDifficultyIndex(clampedIndex);
+      setStageIndex(0);
+    },
+    [completedStageIds],
+  );
 
   const equipTrailEffect = useCallback((effectId: TrailEffectId | null) => {
     if (effectId === null) {
@@ -312,7 +336,9 @@ export function useMazeDaemonsGame() {
 
   return {
     animationResetKey,
-    canLoadNextStage: stageIndex < difficulty.stages.length - 1,
+    canLoadNextStage:
+      stageIndex < difficulty.stages.length - 1 &&
+      isStageUnlocked(difficultyIndex, stageIndex + 1, completedStageIds),
     canLoadPreviousStage: stageIndex > 0,
     coinCountInLevel: Object.keys(level.coins).length,
     collectedCoinCountInLevel: hiddenCoinIds.size,
@@ -326,7 +352,6 @@ export function useMazeDaemonsGame() {
     level,
     loadStage,
     onCellPress: moveToCell,
-    onDirectionPress: moveInDirection,
     onEquipSkin: equipSkin,
     onEquipTrailEffect: equipTrailEffect,
     onPauseToggle: togglePauseState,
@@ -349,6 +374,7 @@ export function useMazeDaemonsGame() {
       coinCount: Object.keys(level.coins).length,
     }),
     trailMap,
+    unlockedDifficultyIds,
   };
 }
 
@@ -375,6 +401,9 @@ function normalizeProgress(stored: string | null): ProgressState {
       coins: typeof parsed.coins === 'number' && Number.isFinite(parsed.coins) ? parsed.coins : 0,
       collectedCoinKeys: Array.isArray(parsed.collectedCoinKeys)
         ? unique(parsed.collectedCoinKeys.filter((key): key is string => typeof key === 'string'))
+        : [],
+      completedStageKeys: Array.isArray(parsed.completedStageKeys)
+        ? unique(parsed.completedStageKeys.filter((key): key is string => typeof key === 'string'))
         : [],
       purchasedTrailEffectIds,
       selectedTrailEffectId,
@@ -428,10 +457,51 @@ function getStatusText({
     return `클리어. 코인 ${collectedCoinCount}/${coinCount}개를 확인했습니다.`;
   }
   if (!hasStarted) {
-    return '시작을 누르면 타이머와 이동이 시작됩니다.';
+    return '시작 버튼 또는 미로 터치로 타이머와 이동이 시작됩니다.';
   }
   if (isPaused) {
     return '일시정지 중입니다. 계속 버튼으로 이어서 플레이하세요.';
   }
   return `출구로 이동하세요. 코인 ${collectedCoinCount}/${coinCount}`;
+}
+
+function getDirectionFromTap(player: Position, target: Position): Direction | null {
+  const rowDelta = target.row - player.row;
+  const colDelta = target.col - player.col;
+
+  if (rowDelta === 0 && colDelta === 0) {
+    return null;
+  }
+
+  if (Math.abs(colDelta) >= Math.abs(rowDelta)) {
+    return colDelta > 0 ? 'right' : 'left';
+  }
+
+  return rowDelta > 0 ? 'down' : 'up';
+}
+
+function isDifficultyUnlocked(difficultyIndex: number, completedStageIds: Set<string>) {
+  if (difficultyIndex <= 0) {
+    return true;
+  }
+
+  const previousDifficulty = difficulties[difficultyIndex - 1];
+  return previousDifficulty.stages.every((stage) => completedStageIds.has(stage.id));
+}
+
+function isStageUnlocked(
+  difficultyIndex: number,
+  stageIndex: number,
+  completedStageIds: Set<string>,
+) {
+  if (!isDifficultyUnlocked(difficultyIndex, completedStageIds)) {
+    return false;
+  }
+  if (stageIndex <= 0) {
+    return true;
+  }
+
+  const difficulty = difficulties[difficultyIndex];
+  const previousStage = difficulty.stages[stageIndex - 1];
+  return completedStageIds.has(previousStage.id);
 }
