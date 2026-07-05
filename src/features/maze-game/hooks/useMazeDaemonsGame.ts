@@ -1,7 +1,5 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { catalog, difficulties } from '../../../data/levels';
-import { defaultProgress, skinItems, trailEffectItems } from '../../../data/shop';
+import { difficulties } from '../../../data/levels';
 import { settings } from '../../../data/settings';
 import {
   buildTrailMap,
@@ -10,13 +8,7 @@ import {
   movePlayerToTarget,
   prepareLevel,
 } from '../../../game/maze';
-import type {
-  PlayerSkinId,
-  Position,
-  ProgressState,
-  ShopSkinId,
-  TrailEffectId,
-} from '../../../game/types';
+import type { Position } from '../../../game/types';
 import {
   createTimerState,
   finishTimer,
@@ -24,8 +16,17 @@ import {
   startTimer,
   togglePause,
 } from '../utils/timer';
-
-const progressStorageKey = `maze-daemons:progress:v${catalog.version}`;
+import {
+  canAdvanceAfterWin as canAdvanceAfterWinForProgress,
+  getNextStageLocation,
+  getSelectableStageIndexes,
+  getUnlockedDifficultyIds,
+  isDifficultyUnlocked,
+  isStageUnlocked,
+} from '../utils/progression';
+import { getStatusText } from '../utils/statusText';
+import { useProgressState } from './useProgressState';
+import { useShopActions } from './useShopActions';
 
 export function useMazeDaemonsGame() {
   const [difficultyIndex, setDifficultyIndex] = useState(0);
@@ -37,9 +38,9 @@ export function useMazeDaemonsGame() {
   const [timerState, setTimerState] = useState(() => createTimerState());
   const [gameState, setGameState] = useState(() => createInitialState(level));
   const [animationResetKey, setAnimationResetKey] = useState(0);
-  const [progressLoaded, setProgressLoaded] = useState(false);
-  const [progress, setProgress] = useState<ProgressState>(defaultProgress);
+  const { progress, progressLoaded, setProgress } = useProgressState();
   const [shopMessage, setShopMessage] = useState('');
+  const shopActions = useShopActions({ setProgress, setShopMessage });
 
   const elapsedMs = getElapsedMs(timerState, now);
   const hasStarted = timerState.startedAt !== null;
@@ -75,78 +76,35 @@ export function useMazeDaemonsGame() {
     return stageIds;
   }, [completedStageIds, gameState.isWon, level.id]);
   const unlockedDifficultyIds = useMemo(
-    () =>
-      new Set(
-        difficulties
-          .filter((_, index) => isDifficultyUnlocked(index, effectiveCompletedStageIds))
-          .map((unlockedDifficulty) => unlockedDifficulty.id),
-      ),
+    () => getUnlockedDifficultyIds(effectiveCompletedStageIds),
     [effectiveCompletedStageIds],
   );
   const selectableStageIndexes = useMemo(
     () =>
-      difficulty.stages
-        .map((_, index) => index)
-        .filter((index) => {
-          const stage = difficulty.stages[index];
-          return index === stageIndex || effectiveCompletedStageIds.has(stage.id);
-        }),
+      getSelectableStageIndexes({
+        completedStageIds: effectiveCompletedStageIds,
+        difficulty,
+        stageIndex,
+      }),
     [difficulty.stages, effectiveCompletedStageIds, stageIndex],
   );
   const canAdvanceAfterWin = useMemo(() => {
     if (!gameState.isWon) {
       return false;
     }
-
-    if (stageIndex < difficulty.stages.length - 1) {
-      return isStageUnlocked(difficultyIndex, stageIndex + 1, effectiveCompletedStageIds);
-    }
-
-    const nextDifficultyIndex = difficultyIndex + 1;
-    return (
-      nextDifficultyIndex < difficulties.length &&
-      isDifficultyUnlocked(nextDifficultyIndex, effectiveCompletedStageIds)
-    );
+    return canAdvanceAfterWinForProgress({
+      completedStageIds: effectiveCompletedStageIds,
+      difficulty,
+      difficultyIndex,
+      stageIndex,
+    });
   }, [
-    difficulty.stages.length,
+    difficulty,
     difficultyIndex,
     effectiveCompletedStageIds,
     gameState.isWon,
     stageIndex,
   ]);
-
-  useEffect(() => {
-    let active = true;
-
-    AsyncStorage.getItem(progressStorageKey)
-      .then((stored) => {
-        if (!active) {
-          return;
-        }
-        setProgress(normalizeProgress(stored));
-      })
-      .catch(() => {
-        if (active) {
-          setProgress(defaultProgress);
-        }
-      })
-      .finally(() => {
-        if (active) {
-          setProgressLoaded(true);
-        }
-      });
-
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!progressLoaded) {
-      return;
-    }
-    AsyncStorage.setItem(progressStorageKey, JSON.stringify(progress)).catch(() => undefined);
-  }, [progress, progressLoaded]);
 
   useEffect(() => {
     const intervalId = setInterval(() => {
@@ -156,12 +114,25 @@ export function useMazeDaemonsGame() {
     return () => clearInterval(intervalId);
   }, []);
 
-  useEffect(() => {
+  const resetRunForLevel = useCallback((nextLevel: typeof level) => {
     setNow(Date.now());
-    setTimerState(createTimerState());
-    setGameState(createInitialState(level));
     setAnimationResetKey((current) => current + 1);
-  }, [level]);
+    setTimerState(createTimerState());
+    setGameState(createInitialState(nextLevel));
+  }, []);
+
+  const activateStage = useCallback(
+    (nextDifficultyIndex: number, nextStageIndex: number) => {
+      const nextDifficulty = difficulties[nextDifficultyIndex] ?? difficulties[0];
+      const nextLevelData = nextDifficulty.stages[nextStageIndex] ?? nextDifficulty.stages[0];
+      const nextLevel = prepareLevel(nextLevelData);
+
+      setDifficultyIndex(nextDifficultyIndex);
+      setStageIndex(nextStageIndex);
+      resetRunForLevel(nextLevel);
+    },
+    [resetRunForLevel],
+  );
 
   const commitNextState = useCallback(
     (nextGameState: typeof gameState, timestamp: number) => {
@@ -217,6 +188,7 @@ export function useMazeDaemonsGame() {
         target,
         trailVisibleMs,
         elapsedAtMove,
+        settings.movement,
       );
       if (nextGameState === gameState) {
         return;
@@ -231,11 +203,8 @@ export function useMazeDaemonsGame() {
   );
 
   const resetRun = useCallback(() => {
-    setNow(Date.now());
-    setAnimationResetKey((current) => current + 1);
-    setTimerState(createTimerState());
-    setGameState(createInitialState(level));
-  }, [level]);
+    resetRunForLevel(level);
+  }, [level, resetRunForLevel]);
 
   const togglePauseState = useCallback(() => {
     if (!hasStarted || gameState.isWon) {
@@ -249,21 +218,14 @@ export function useMazeDaemonsGame() {
 
   const startRun = useCallback(() => {
     if (gameState.isWon) {
-      if (
-        stageIndex < difficulty.stages.length - 1 &&
-        isStageUnlocked(difficultyIndex, stageIndex + 1, effectiveCompletedStageIds)
-      ) {
-        setStageIndex(stageIndex + 1);
-        return;
-      }
-
-      const nextDifficultyIndex = difficultyIndex + 1;
-      if (
-        nextDifficultyIndex < difficulties.length &&
-        isDifficultyUnlocked(nextDifficultyIndex, effectiveCompletedStageIds)
-      ) {
-        setDifficultyIndex(nextDifficultyIndex);
-        setStageIndex(0);
+      const nextLocation = getNextStageLocation({
+        completedStageIds: effectiveCompletedStageIds,
+        difficulty,
+        difficultyIndex,
+        stageIndex,
+      });
+      if (nextLocation) {
+        activateStage(nextLocation.difficultyIndex, nextLocation.stageIndex);
       }
       return;
     }
@@ -276,13 +238,14 @@ export function useMazeDaemonsGame() {
     setNow(timestamp);
     setTimerState((current) => startTimer(current, timestamp));
   }, [
-    difficulty.stages.length,
+    difficulty,
     difficultyIndex,
     effectiveCompletedStageIds,
     gameState.isWon,
     hasStarted,
     isPaused,
     stageIndex,
+    activateStage,
   ]);
 
   const loadStage = useCallback(
@@ -292,9 +255,9 @@ export function useMazeDaemonsGame() {
         setShopMessage('이전 스테이지를 먼저 클리어해야 합니다.');
         return;
       }
-      setStageIndex(clampedIndex);
+      activateStage(difficultyIndex, clampedIndex);
     },
-    [difficulty.stages.length, difficultyIndex, effectiveCompletedStageIds],
+    [activateStage, difficulty.stages.length, difficultyIndex, effectiveCompletedStageIds],
   );
 
   const selectDifficulty = useCallback(
@@ -304,95 +267,10 @@ export function useMazeDaemonsGame() {
         setShopMessage('이전 난이도의 모든 스테이지를 클리어해야 합니다.');
         return;
       }
-      setDifficultyIndex(clampedIndex);
-      setStageIndex(0);
+      activateStage(clampedIndex, 0);
     },
-    [effectiveCompletedStageIds],
+    [activateStage, effectiveCompletedStageIds],
   );
-
-  const equipTrailEffect = useCallback((effectId: TrailEffectId | null) => {
-    if (effectId === null) {
-      setProgress((current) => ({ ...current, selectedTrailEffectId: null }));
-      setShopMessage('기본 이동 이펙트 없음으로 변경했습니다.');
-      return;
-    }
-
-    setProgress((current) => {
-      if (!current.purchasedTrailEffectIds.includes(effectId)) {
-        return current;
-      }
-      return { ...current, selectedTrailEffectId: effectId };
-    });
-    setShopMessage('이동 이펙트를 장착했습니다.');
-  }, []);
-
-  const purchaseTrailEffect = useCallback((effectId: TrailEffectId) => {
-    setProgress((current) => {
-      const itemIndex = trailEffectItems.findIndex((item) => item.id === effectId);
-      const item = trailEffectItems[itemIndex];
-      if (!item || current.purchasedTrailEffectIds.includes(effectId)) {
-        return current;
-      }
-      if (itemIndex > 0 && !current.purchasedTrailEffectIds.includes(trailEffectItems[itemIndex - 1].id)) {
-        setShopMessage('왼쪽 상품부터 순서대로 구매해야 합니다.');
-        return current;
-      }
-      if (current.coins < item.price) {
-        setShopMessage('코인이 부족합니다.');
-        return current;
-      }
-
-      setShopMessage(`${item.label} 이동 이펙트를 구매했습니다.`);
-      return {
-        ...current,
-        coins: current.coins - item.price,
-        purchasedTrailEffectIds: [...current.purchasedTrailEffectIds, effectId],
-        selectedTrailEffectId: effectId,
-      };
-    });
-  }, []);
-
-  const equipSkin = useCallback((skinId: PlayerSkinId) => {
-    if (skinId === 'zombie') {
-      setProgress((current) => ({ ...current, selectedSkinId: skinId }));
-      setShopMessage('기본 좀비 스킨을 장착했습니다.');
-      return;
-    }
-
-    setProgress((current) => {
-      if (!current.purchasedSkinIds.includes(skinId)) {
-        return current;
-      }
-      return { ...current, selectedSkinId: skinId };
-    });
-    setShopMessage('플레이어 아이콘을 장착했습니다.');
-  }, []);
-
-  const purchaseSkin = useCallback((skinId: ShopSkinId) => {
-    setProgress((current) => {
-      const itemIndex = skinItems.findIndex((item) => item.id === skinId);
-      const item = skinItems[itemIndex];
-      if (!item || current.purchasedSkinIds.includes(skinId)) {
-        return current;
-      }
-      if (itemIndex > 0 && !current.purchasedSkinIds.includes(skinItems[itemIndex - 1].id)) {
-        setShopMessage('왼쪽 스킨부터 순서대로 구매해야 합니다.');
-        return current;
-      }
-      if (current.coins < item.price) {
-        setShopMessage('코인이 부족합니다.');
-        return current;
-      }
-
-      setShopMessage(`${item.label} 아이콘을 구매했습니다.`);
-      return {
-        ...current,
-        coins: current.coins - item.price,
-        purchasedSkinIds: [...current.purchasedSkinIds, skinId],
-        selectedSkinId: skinId,
-      };
-    });
-  }, []);
 
   return {
     animationResetKey,
@@ -409,11 +287,11 @@ export function useMazeDaemonsGame() {
     level,
     loadStage,
     onCellPress: moveToCell,
-    onEquipSkin: equipSkin,
-    onEquipTrailEffect: equipTrailEffect,
+    onEquipSkin: shopActions.equipSkin,
+    onEquipTrailEffect: shopActions.equipTrailEffect,
     onPauseToggle: togglePauseState,
-    onPurchaseSkin: purchaseSkin,
-    onPurchaseTrailEffect: purchaseTrailEffect,
+    onPurchaseSkin: shopActions.purchaseSkin,
+    onPurchaseTrailEffect: shopActions.purchaseTrailEffect,
     onReset: resetRun,
     onSelectDifficulty: selectDifficulty,
     onStartPress: startRun,
@@ -433,118 +311,9 @@ export function useMazeDaemonsGame() {
     trailMap,
     unlockedDifficultyIds,
     selectableStageIndexes,
-    };
-}
-
-function normalizeProgress(stored: string | null): ProgressState {
-  if (!stored) {
-    return defaultProgress;
-  }
-
-  try {
-    const parsed = JSON.parse(stored) as Partial<ProgressState>;
-    const purchasedTrailEffectIds = validTrailIds(parsed.purchasedTrailEffectIds);
-    const purchasedSkinIds = validSkinIds(parsed.purchasedSkinIds);
-    const rawSelectedSkinId = parsed.selectedSkinId;
-    const selectedTrailEffectId =
-      parsed.selectedTrailEffectId && purchasedTrailEffectIds.includes(parsed.selectedTrailEffectId)
-        ? parsed.selectedTrailEffectId
-        : null;
-    const selectedSkinId: PlayerSkinId =
-      rawSelectedSkinId === 'zombie' || purchasedSkinIds.includes(rawSelectedSkinId as ShopSkinId)
-        ? (rawSelectedSkinId as PlayerSkinId)
-        : defaultProgress.selectedSkinId;
-
-    return {
-      coins: typeof parsed.coins === 'number' && Number.isFinite(parsed.coins) ? parsed.coins : 0,
-      collectedCoinKeys: Array.isArray(parsed.collectedCoinKeys)
-        ? unique(parsed.collectedCoinKeys.filter((key): key is string => typeof key === 'string'))
-        : [],
-      completedStageKeys: Array.isArray(parsed.completedStageKeys)
-        ? unique(parsed.completedStageKeys.filter((key): key is string => typeof key === 'string'))
-        : [],
-      purchasedTrailEffectIds,
-      selectedTrailEffectId,
-      purchasedSkinIds,
-      selectedSkinId,
-    };
-  } catch {
-    return defaultProgress;
-  }
-}
-
-function validTrailIds(ids: unknown): TrailEffectId[] {
-  if (!Array.isArray(ids)) {
-    return [];
-  }
-  const validIds = new Set(trailEffectItems.map((item) => item.id));
-  return unique(ids.filter((id): id is TrailEffectId => typeof id === 'string' && validIds.has(id as TrailEffectId)));
-}
-
-function validSkinIds(ids: unknown): ShopSkinId[] {
-  if (!Array.isArray(ids)) {
-    return [];
-  }
-  const validIds = new Set(skinItems.map((item) => item.id));
-  return unique(ids.filter((id): id is ShopSkinId => typeof id === 'string' && validIds.has(id as ShopSkinId)));
+  };
 }
 
 function unique<T>(items: T[]) {
   return Array.from(new Set(items));
-}
-
-function getStatusText({
-  coinCount,
-  collectedCoinCount,
-  gameState,
-  hasStarted,
-  isPaused,
-  progressLoaded,
-}: {
-  coinCount: number;
-  collectedCoinCount: number;
-  gameState: ReturnType<typeof createInitialState>;
-  hasStarted: boolean;
-  isPaused: boolean;
-  progressLoaded: boolean;
-}) {
-  if (!progressLoaded) {
-    return '저장 데이터를 불러오는 중입니다.';
-  }
-  if (gameState.isWon) {
-    return `클리어. 코인 ${collectedCoinCount}/${coinCount}개를 확인했습니다.`;
-  }
-  if (!hasStarted) {
-    return '시작 버튼 또는 미로 터치로 타이머와 이동이 시작됩니다.';
-  }
-  if (isPaused) {
-    return '일시정지 중입니다. 계속 버튼으로 이어서 플레이하세요.';
-  }
-  return `출구로 이동하세요. 코인 ${collectedCoinCount}/${coinCount}`;
-}
-
-function isDifficultyUnlocked(difficultyIndex: number, completedStageIds: Set<string>) {
-  if (difficultyIndex <= 0) {
-    return true;
-  }
-
-  const previousDifficulty = difficulties[difficultyIndex - 1];
-  return previousDifficulty.stages.every((stage) => completedStageIds.has(stage.id));
-}
-
-function isStageUnlocked(
-  difficultyIndex: number,
-  stageIndex: number,
-  completedStageIds: Set<string>,
-) {
-  if (!isDifficultyUnlocked(difficultyIndex, completedStageIds)) {
-    return false;
-  }
-  if (stageIndex <= 0) {
-    return true;
-  }
-
-  const difficulty = difficulties[difficultyIndex];
-  const previousStage = difficulty.stages[stageIndex - 1];
-  return completedStageIds.has(previousStage.id);
 }

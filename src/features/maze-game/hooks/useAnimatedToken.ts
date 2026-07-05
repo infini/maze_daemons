@@ -1,5 +1,6 @@
 import { useEffect, useMemo } from 'react';
 import { Animated } from 'react-native';
+import { settings } from '../../../data/settings';
 import type { Position } from '../../../game/types';
 
 export function useAnimatedToken({
@@ -115,5 +116,11 @@ function directionBetween(from: Position, to: Position) {
 
 function durationForLeg(from: Position, to: Position) {
   const distance = Math.abs(from.row - to.row) + Math.abs(from.col - to.col);
-  return Math.min(95, Math.max(28, distance * 12));
+  return Math.min(
+    settings.tokenAnimation.maxLegDurationMs,
+    Math.max(
+      settings.tokenAnimation.minLegDurationMs,
+      distance * settings.tokenAnimation.durationMsPerCell,
+    ),
+  );
 }
