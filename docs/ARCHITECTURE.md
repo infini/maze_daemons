@@ -116,7 +116,9 @@ When adding new HUD controls, prefer creating or extending a HUD subcomponent in
 - `src/data/levels/stage-catalog.json`
   - Generated stage catalog.
 - `assets/sounds/*.wav`
-  - Generated local original audio assets.
+  - Generated audio assets.
+- `assets/sounds/sources/*`
+  - Source recordings and license notes used by the sound generator.
 - `assets/tiles/*.png`
   - Generated tile, coin, exit, grave, and spider web image assets.
 - `assets/effects/*.png`

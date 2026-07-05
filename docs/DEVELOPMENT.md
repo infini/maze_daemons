@@ -39,7 +39,7 @@ npm run generate:sounds
 
 Generated visual and audio asset output is written under `assets/`.
 
-`generate:sounds` uses local synthesis for all sounds. On macOS it also uses the built-in `say` and `afconvert` tools as a clearer voice layer for the clear cue, then falls back to pure local synthesis when those tools are unavailable.
+`generate:sounds` uses local synthesis for most sounds. It also processes source recordings in `assets/sounds/sources/` when available; the coin pickup burp uses a CC0 BigSoundBank recording as its source. On macOS it uses the built-in `say` and `afconvert` tools as a clearer voice layer for the clear cue, then falls back to pure local synthesis when those tools are unavailable.
 
 ## Generate Levels
 

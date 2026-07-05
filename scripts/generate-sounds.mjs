@@ -6,6 +6,8 @@ import { fileURLToPath } from 'node:url';
 
 const rootDir = dirname(dirname(fileURLToPath(import.meta.url)));
 const outputDir = join(rootDir, 'assets', 'sounds');
+const sourceDir = join(outputDir, 'sources');
+const recordedCoinBurpPath = join(sourceDir, 'bigsoundbank-burp-1710.wav');
 const sampleRate = 44100;
 
 const SPOOKY_VOWELS = {
@@ -47,6 +49,35 @@ function createTapSound() {
 }
 
 function createCoinBurpSound() {
+  const recordedBurp = loadRecordedCoinBurp();
+  if (!recordedBurp) {
+    return createSyntheticCoinBurpSound();
+  }
+
+  const preparedBurp = normalize(lowPass(resampleSpeed(trimSilence(recordedBurp, 0.006), 0.78), 3200), 0.82);
+  const dry = synthesize(0.8, (time) => {
+    const swallow =
+      (sine(glide(time, 0.018, 0.12, 132, 82), time) * 0.13 +
+        sine(glide(time, 0.018, 0.12, 264, 164), time) * 0.035) *
+      attackRelease(time - 0.018, 0.018, 0.16, 1.65);
+    const realBurp = sampleAt(preparedBurp, time, 0.1) * 0.82;
+    const chest = bellyPressure(time, 0.09, 0.48, 0.18);
+    const fullTail =
+      sine(glide(time, 0.48, 0.22, 58, 42), time) * attackRelease(time - 0.48, 0.04, 0.22, 1.35) * 0.09;
+
+    return swallow + realBurp + chest + fullTail;
+  });
+
+  return finalize(
+    addShortRoom(lowPass(dry, 3400), [
+      { delaySeconds: 0.032, gain: 0.055 },
+      { delaySeconds: 0.061, gain: 0.032 },
+    ]),
+    0.58,
+  );
+}
+
+function createSyntheticCoinBurpSound() {
   const dry = synthesize(0.96, (time) => {
     const onset = softBurpPlosive(time, 0.018, 0.09, 0.16, 211);
     const pressure = bellyPressure(time, 0.035, 0.72, 0.23);
@@ -70,11 +101,11 @@ function createCoinBurpSound() {
 
 function createClearHauntSound() {
   const voice = createSpeechSamples({
-    rate: 112,
+    rate: 96,
     text: 'clear',
-    voice: 'Daniel',
+    voice: 'Grandpa',
   });
-  const clearVoice = voice ? resampleSpeed(trimSilence(voice, 0.01), 0.84) : null;
+  const clearVoice = voice ? prepareClearVoice(voice) : null;
 
   return finalize(
     synthesize(2.34, (time) => {
@@ -95,11 +126,37 @@ function createClearHauntSound() {
           sine(glide(time, 1.42, 0.56, 168, 84), time) * 0.045) *
         attackRelease(time - 1.42, 0.06, 0.62, 1.6);
       const air = smoothNoise(time, 109, 15) * attackRelease(time - 0.22, 0.2, 1.52, 2.1) * 0.009;
-      const spokenClear = clearVoice ? sampleAt(clearVoice, time, 1.08) * 0.36 : ghostClearWord(time, 1.08) * 0.24;
-      const voiceBody = clearVoice ? sampleAt(clearVoice, time, 1.08) * sine(72, time) * 0.018 : 0;
-      return firstHit + secondHit + thirdHit + lowDrone + clearChord + finalDrop + air + spokenClear + voiceBody;
+      const spokenClear = clearVoice ? sampleAt(clearVoice, time, 1.03) * 0.5 : ghostClearWord(time, 1.08) * 0.24;
+      const voiceBody = clearVoice ? sampleAt(clearVoice, time, 1.03) * sine(66, time) * 0.026 : 0;
+      const voiceShadow = clearVoice ? sampleAt(clearVoice, time, 1.1) * 0.09 : 0;
+      return firstHit + secondHit + thirdHit + lowDrone + clearChord + finalDrop + air + spokenClear + voiceBody + voiceShadow;
     }),
     0.66,
+  );
+}
+
+function loadRecordedCoinBurp() {
+  if (!existsSync(recordedCoinBurpPath)) {
+    return null;
+  }
+
+  try {
+    return readWavSamples(recordedCoinBurpPath);
+  } catch {
+    return null;
+  }
+}
+
+function prepareClearVoice(samples) {
+  const trimmed = trimSilence(samples, 0.012);
+  const lowered = resampleSpeed(trimmed, 0.82);
+  const rounded = lowPass(lowered, 4200);
+  return normalize(
+    addShortRoom(rounded, [
+      { delaySeconds: 0.052, gain: 0.07 },
+      { delaySeconds: 0.104, gain: 0.04 },
+    ]),
+    0.72,
   );
 }
 
@@ -295,6 +352,7 @@ function readWavSamples(path) {
   let offset = 12;
   let channels = 1;
   let bitsPerSample = 16;
+  let sourceSampleRate = sampleRate;
   let dataOffset = -1;
   let dataSize = 0;
 
@@ -305,6 +363,7 @@ function readWavSamples(path) {
 
     if (chunkId === 'fmt ') {
       channels = buffer.readUInt16LE(payloadOffset + 2);
+      sourceSampleRate = buffer.readUInt32LE(payloadOffset + 4);
       bitsPerSample = buffer.readUInt16LE(payloadOffset + 14);
     }
     if (chunkId === 'data') {
@@ -316,20 +375,47 @@ function readWavSamples(path) {
     offset = payloadOffset + chunkSize + (chunkSize % 2);
   }
 
-  if (dataOffset < 0 || bitsPerSample !== 16 || channels < 1) {
-    throw new Error(`${path} is not a 16-bit PCM WAV file.`);
+  const bytesPerSample = bitsPerSample / 8;
+  if (dataOffset < 0 || ![1, 2, 3, 4].includes(bytesPerSample) || channels < 1) {
+    throw new Error(`${path} is not a supported PCM WAV file.`);
   }
 
-  const frameCount = Math.floor(dataSize / (channels * 2));
+  const frameCount = Math.floor(dataSize / (channels * bytesPerSample));
   const samples = new Float32Array(frameCount);
   for (let frame = 0; frame < frameCount; frame += 1) {
     let sum = 0;
     for (let channel = 0; channel < channels; channel += 1) {
-      sum += buffer.readInt16LE(dataOffset + (frame * channels + channel) * 2) / 32768;
+      sum += readPcmSample(buffer, dataOffset + (frame * channels + channel) * bytesPerSample, bitsPerSample);
     }
     samples[frame] = sum / channels;
   }
-  return samples;
+  return sourceSampleRate === sampleRate ? samples : resampleToSampleRate(samples, sourceSampleRate, sampleRate);
+}
+
+function readPcmSample(buffer, offset, bitsPerSample) {
+  if (bitsPerSample === 8) {
+    return (buffer.readUInt8(offset) - 128) / 128;
+  }
+  if (bitsPerSample === 16) {
+    return buffer.readInt16LE(offset) / 32768;
+  }
+  if (bitsPerSample === 24) {
+    return buffer.readIntLE(offset, 3) / 8388608;
+  }
+  if (bitsPerSample === 32) {
+    return buffer.readInt32LE(offset) / 2147483648;
+  }
+  throw new Error(`Unsupported bit depth: ${bitsPerSample}`);
+}
+
+function resampleToSampleRate(samples, fromRate, toRate) {
+  const outputLength = Math.max(1, Math.floor((samples.length * toRate) / fromRate));
+  const output = new Float32Array(outputLength);
+  const ratio = fromRate / toRate;
+  for (let index = 0; index < outputLength; index += 1) {
+    output[index] = interpolateSample(samples, index * ratio);
+  }
+  return output;
 }
 
 function trimSilence(samples, threshold) {

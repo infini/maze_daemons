@@ -93,7 +93,7 @@ Persistence:
 
 - BGM uses a quiet original dark ambient loop.
 - Maze board taps play a short touch sound.
-- Newly collected coins play a short full-belly burp sound with the pink pig `YUMMY!` effect.
+- Newly collected coins play a short recorded full-belly burp sound with the pink pig `YUMMY!` effect.
 - Stage clear plays a heavy eerie clear sound with the ender dragon `CLEAR` effect.
 - Settings store separate volume controls for BGM, touch, coin, and clear channels.
 - Each audio channel can be previewed directly from settings without playing a stage.

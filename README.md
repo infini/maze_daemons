@@ -64,4 +64,4 @@ Regenerate original local sound effects with:
 npm run generate:sounds
 ```
 
-The stage catalog version is used as part of the progress storage key. Compatible older progress is migrated into the newest key on launch. If coin placement changes in a way that invalidates existing coin IDs, bump the catalog version in [scripts/generate-levels.mjs](scripts/generate-levels.mjs) before regenerating.
+The sound generator uses local synthesis plus source recordings under [assets/sounds/sources](assets/sounds/sources). The stage catalog version is used as part of the progress storage key. Compatible older progress is migrated into the newest key on launch. If coin placement changes in a way that invalidates existing coin IDs, bump the catalog version in [scripts/generate-levels.mjs](scripts/generate-levels.mjs) before regenerating.
