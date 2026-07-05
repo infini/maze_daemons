@@ -14,13 +14,15 @@ export function getBoardMetrics({
   const padding = isLandscape ? 4 : 4;
   const panelWidth = isLandscape ? Math.min(340, Math.max(292, width * 0.22)) : width - padding * 2;
   const maxBoardWidth = isLandscape ? width - panelWidth - padding * 3 : width - padding * 2;
-  const maxBoardHeight = isLandscape ? height - padding * 2 : height * 0.72;
-  const cellSize = Math.max(5, Math.min(maxBoardWidth / levelWidth, maxBoardHeight / levelHeight));
+  const maxBoardHeight = isLandscape ? height - padding * 2 : height * 0.82;
+  const cellWidth = Math.max(5, maxBoardWidth / levelWidth);
+  const cellHeight = Math.max(5, maxBoardHeight / levelHeight);
 
   return {
-    boardHeight: cellSize * levelHeight,
-    boardWidth: cellSize * levelWidth,
-    cellSize,
+    boardHeight: cellHeight * levelHeight,
+    boardWidth: cellWidth * levelWidth,
+    cellHeight,
+    cellWidth,
     panelWidth,
   };
 }

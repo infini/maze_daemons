@@ -11,20 +11,23 @@ export function MazeGameScreen() {
   const isLandscape = width > height;
   const useSideLayout = isLandscape || width >= 1000;
   const game = useMazeDaemonsGame();
-  const { boardHeight, boardWidth, cellSize, panelWidth } = getBoardMetrics({
+  const { boardHeight, boardWidth, cellHeight, cellWidth, panelWidth } = getBoardMetrics({
     height,
     isLandscape: useSideLayout,
     levelHeight: game.level.height,
     levelWidth: game.level.width,
     width,
   });
-  const tokenInset = cellSize * 0.08;
-  const tokenSize = cellSize * 0.84;
+  const tokenSize = Math.min(cellWidth, cellHeight) * 0.84;
+  const tokenInsetX = (cellWidth - tokenSize) / 2;
+  const tokenInsetY = (cellHeight - tokenSize) / 2;
   const animatedTokenPosition = useAnimatedToken({
-    cellSize,
+    cellHeight,
+    cellWidth,
     position: game.gameState.player,
     resetKey: game.animationResetKey,
-    tokenInset,
+    tokenInsetX,
+    tokenInsetY,
   });
 
   return (
@@ -45,7 +48,8 @@ export function MazeGameScreen() {
           animatedTokenPosition={animatedTokenPosition}
           boardHeight={boardHeight}
           boardWidth={boardWidth}
-          cellSize={cellSize}
+          cellHeight={cellHeight}
+          cellWidth={cellWidth}
           gameState={game.gameState}
           hiddenCoinIds={game.hiddenCoinIds}
           isPaused={game.isPaused}

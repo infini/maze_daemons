@@ -3,21 +3,25 @@ import { Animated } from 'react-native';
 import type { Position } from '../../../game/types';
 
 export function useAnimatedToken({
-  cellSize,
+  cellHeight,
+  cellWidth,
   position,
   resetKey,
-  tokenInset,
+  tokenInsetX,
+  tokenInsetY,
 }: {
-  cellSize: number;
+  cellHeight: number;
+  cellWidth: number;
   position: Position;
   resetKey: number;
-  tokenInset: number;
+  tokenInsetX: number;
+  tokenInsetY: number;
 }) {
   const animatedPosition = useMemo(
     () =>
       new Animated.ValueXY({
-        x: position.col * cellSize + tokenInset,
-        y: position.row * cellSize + tokenInset,
+        x: position.col * cellWidth + tokenInsetX,
+        y: position.row * cellHeight + tokenInsetY,
       }),
     // Animated.ValueXY is intentionally recreated only on explicit resets.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -27,13 +31,13 @@ export function useAnimatedToken({
   useEffect(() => {
     Animated.timing(animatedPosition, {
       toValue: {
-        x: position.col * cellSize + tokenInset,
-        y: position.row * cellSize + tokenInset,
+        x: position.col * cellWidth + tokenInsetX,
+        y: position.row * cellHeight + tokenInsetY,
       },
       duration: 85,
       useNativeDriver: true,
     }).start();
-  }, [animatedPosition, cellSize, position.col, position.row, tokenInset]);
+  }, [animatedPosition, cellHeight, cellWidth, position.col, position.row, tokenInsetX, tokenInsetY]);
 
   return animatedPosition;
 }

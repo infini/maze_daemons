@@ -14,7 +14,8 @@ export function MazeBoard({
   animatedTokenPosition,
   boardHeight,
   boardWidth,
-  cellSize,
+  cellHeight,
+  cellWidth,
   gameState,
   hiddenCoinIds,
   isPaused,
@@ -28,7 +29,8 @@ export function MazeBoard({
   animatedTokenPosition: Animated.ValueXY;
   boardHeight: number;
   boardWidth: number;
-  cellSize: number;
+  cellHeight: number;
+  cellWidth: number;
   gameState: GameState;
   hiddenCoinIds: Set<string>;
   isPaused: boolean;
@@ -43,8 +45,8 @@ export function MazeBoard({
     <Pressable
       disabled={isPaused || gameState.isWon}
       onPress={(event) => {
-        const col = clamp(Math.floor(event.nativeEvent.locationX / cellSize), 0, level.width - 1);
-        const row = clamp(Math.floor(event.nativeEvent.locationY / cellSize), 0, level.height - 1);
+        const col = clamp(Math.floor(event.nativeEvent.locationX / cellWidth), 0, level.width - 1);
+        const row = clamp(Math.floor(event.nativeEvent.locationY / cellHeight), 0, level.height - 1);
         onCellPress({ row, col });
       }}
       style={[styles.boardFrame, { width: boardWidth, height: boardHeight }]}
@@ -63,10 +65,10 @@ export function MazeBoard({
                 styles.cell,
                 cell.kind === 'wall' ? styles.wallCell : styles.floorCell,
                 {
-                  width: cellSize,
-                  height: cellSize,
-                  left: cell.col * cellSize,
-                  top: rowIndex * cellSize,
+                  width: cellWidth,
+                  height: cellHeight,
+                  left: cell.col * cellWidth,
+                  top: rowIndex * cellHeight,
                 },
               ]}
             >
