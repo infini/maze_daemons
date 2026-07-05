@@ -29,14 +29,6 @@ export function Trail({
           ]}
         />
       ))}
-      <View
-        style={[
-          styles.core,
-          {
-            backgroundColor: getTrailColor(effectId, row, col, directions.size),
-          },
-        ]}
-      />
     </View>
   );
 }
@@ -69,15 +61,6 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     left: 0,
-  },
-  core: {
-    position: 'absolute',
-    left: '35%',
-    top: '35%',
-    width: '30%',
-    height: '30%',
-    borderRadius: 999,
-    opacity: 0.85,
   },
   segment: {
     position: 'absolute',

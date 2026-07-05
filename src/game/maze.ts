@@ -88,6 +88,8 @@ export function createInitialState(level: PreparedLevel): GameState {
   return {
     player: level.start,
     isWon: false,
+    lastMovePath: [],
+    moveKey: 0,
     moves: 0,
     collectedCoinIds: [],
     trails: [],
@@ -113,6 +115,26 @@ export function movePlayer(
     trailVisibleMs,
     trailNowMs,
   );
+}
+
+export function movePlayerToTarget(
+  level: PreparedLevel,
+  state: GameState,
+  target: Position,
+  trailVisibleMs: number,
+  trailNowMs: number,
+): GameState {
+  if (state.isWon) {
+    return state;
+  }
+
+  const path = findDirectOrOneTurnPath(level, state.player, target);
+  const fallbackPath = path.length > 0 ? path : findDirectionalFallbackPath(level, state.player, target);
+  if (fallbackPath.length === 0) {
+    return state;
+  }
+
+  return applyPath(level, state, fallbackPath, trailVisibleMs, trailNowMs);
 }
 
 export function buildTrailMap(
@@ -158,6 +180,7 @@ function applyPath(
   let player = state.player;
   const collectedCoinIds = new Set(state.collectedCoinIds);
   const segments = [];
+  const traveledPath = [];
 
   for (const next of path) {
     const cell = level.cells[next.row]?.[next.col];
@@ -166,11 +189,16 @@ function applyPath(
     }
 
     segments.push({ from: previous, to: next, at: trailNowMs });
+    traveledPath.push(next);
     if (cell.kind === 'coin' && cell.coinId) {
       collectedCoinIds.add(cell.coinId);
     }
     player = next;
     previous = next;
+
+    if (samePosition(player, level.exit)) {
+      break;
+    }
   }
 
   const trails = state.trails.filter((segment) => trailNowMs - segment.at <= trailVisibleMs);
@@ -178,10 +206,148 @@ function applyPath(
   return {
     player,
     isWon: samePosition(player, level.exit),
-    moves: state.moves + path.length,
+    lastMovePath: [state.player, ...traveledPath],
+    moveKey: state.moveKey + 1,
+    moves: state.moves + traveledPath.length,
     collectedCoinIds: Array.from(collectedCoinIds),
     trails: [...trails, ...segments],
   };
+}
+
+function findDirectOrOneTurnPath(
+  level: PreparedLevel,
+  from: Position,
+  target: Position,
+) {
+  if (samePosition(from, target) || !isWalkable(level, target)) {
+    return [];
+  }
+
+  const directPath = buildLinePath(from, target);
+  if (directPath && isPathWalkable(level, from, directPath)) {
+    return directPath;
+  }
+
+  const corners = [
+    { row: from.row, col: target.col },
+    { row: target.row, col: from.col },
+  ];
+
+  for (const corner of corners) {
+    if (!isWalkable(level, corner)) {
+      continue;
+    }
+
+    const firstLeg = buildLinePath(from, corner);
+    const secondLeg = buildLinePath(corner, target);
+    if (!firstLeg || !secondLeg) {
+      continue;
+    }
+
+    const path = [...firstLeg, ...secondLeg];
+    if (isPathWalkable(level, from, path)) {
+      return path;
+    }
+  }
+
+  return [];
+}
+
+function findDirectionalFallbackPath(
+  level: PreparedLevel,
+  from: Position,
+  target: Position,
+) {
+  if (samePosition(from, target)) {
+    return [];
+  }
+
+  const rowDelta = target.row - from.row;
+  const colDelta = target.col - from.col;
+  const primaryAxis = Math.abs(colDelta) >= Math.abs(rowDelta) ? 'horizontal' : 'vertical';
+  const axes = primaryAxis === 'horizontal' ? ['horizontal', 'vertical'] : ['vertical', 'horizontal'];
+
+  for (const axis of axes) {
+    const path = buildDirectionalRunPath(
+      level,
+      from,
+      axis === 'horizontal' ? Math.sign(colDelta) : 0,
+      axis === 'vertical' ? Math.sign(rowDelta) : 0,
+    );
+    if (path.length > 0) {
+      return path;
+    }
+  }
+
+  return [];
+}
+
+function buildDirectionalRunPath(
+  level: PreparedLevel,
+  from: Position,
+  colStep: number,
+  rowStep: number,
+) {
+  if (rowStep === 0 && colStep === 0) {
+    return [];
+  }
+
+  const path: Position[] = [];
+  let current = from;
+
+  while (true) {
+    const next = { row: current.row + rowStep, col: current.col + colStep };
+    if (!isWalkable(level, next)) {
+      break;
+    }
+    path.push(next);
+    if (samePosition(next, level.exit)) {
+      break;
+    }
+    current = next;
+  }
+
+  return path;
+}
+
+function buildLinePath(from: Position, to: Position) {
+  const path: Position[] = [];
+
+  if (from.row === to.row) {
+    const step = Math.sign(to.col - from.col);
+    for (let col = from.col + step; col !== to.col + step; col += step) {
+      path.push({ row: from.row, col });
+    }
+    return path;
+  }
+
+  if (from.col === to.col) {
+    const step = Math.sign(to.row - from.row);
+    for (let row = from.row + step; row !== to.row + step; row += step) {
+      path.push({ row, col: from.col });
+    }
+    return path;
+  }
+
+  return null;
+}
+
+function isPathWalkable(level: PreparedLevel, from: Position, path: Position[]) {
+  let previous = from;
+
+  for (const position of path) {
+    if (!isWalkable(level, position) || !areAdjacent(previous, position)) {
+      return false;
+    }
+    previous = position;
+  }
+
+  return true;
+}
+
+function isWalkable(level: PreparedLevel, position: Position) {
+  const cell = level.cells[position.row]?.[position.col];
+  return Boolean(cell && cell.kind !== 'wall');
 }
 
 function tileToCellKind(tile: string): CellKind {

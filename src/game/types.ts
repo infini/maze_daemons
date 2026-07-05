@@ -94,6 +94,8 @@ export type PreparedLevel = {
 export type GameState = {
   player: Position;
   isWon: boolean;
+  lastMovePath: Position[];
+  moveKey: number;
   moves: number;
   collectedCoinIds: string[];
   trails: TrailSegment[];

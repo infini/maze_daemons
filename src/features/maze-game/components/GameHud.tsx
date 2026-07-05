@@ -15,8 +15,7 @@ import { formatElapsedTime } from '../utils/timer';
 
 export function GameHud({
   boardHeight,
-  canLoadNextStage,
-  canLoadPreviousStage,
+  canAdvanceAfterWin,
   coinCountInLevel,
   collectedCoinCountInLevel,
   difficulties,
@@ -42,12 +41,12 @@ export function GameHud({
   stageIndex,
   stagesInDifficulty,
   statusText,
+  selectableStageIndexes,
   unlockedDifficultyIds,
   won,
 }: {
   boardHeight: number;
-  canLoadNextStage: boolean;
-  canLoadPreviousStage: boolean;
+  canAdvanceAfterWin: boolean;
   coinCountInLevel: number;
   collectedCoinCountInLevel: number;
   difficulties: DifficultyData[];
@@ -73,10 +72,12 @@ export function GameHud({
   stageIndex: number;
   stagesInDifficulty: number;
   statusText: string;
+  selectableStageIndexes: number[];
   unlockedDifficultyIds: Set<string>;
   won: boolean;
 }) {
   const [shopOpen, setShopOpen] = useState(false);
+  const [stagePickerOpen, setStagePickerOpen] = useState(false);
 
   return (
     <View style={[styles.controlPanel, { width: panelWidth, maxHeight: boardHeight }]}>
@@ -90,14 +91,38 @@ export function GameHud({
               MazeDaemons
             </Text>
             <Text numberOfLines={1} adjustsFontSizeToFit style={styles.levelTitle}>
-              {levelLabel} · {stageIndex + 1}/{stagesInDifficulty}
+              {levelLabel}
             </Text>
           </View>
+          <Pressable
+            onPress={() => setStagePickerOpen((current) => !current)}
+            style={({ pressed }) => [
+              styles.stageButton,
+              stagePickerOpen ? styles.stageButtonActive : null,
+              pressed ? styles.stageButtonPressed : null,
+            ]}
+          >
+            <Text style={styles.stageButtonTitle}>STAGE</Text>
+            <Text style={styles.stageButtonText}>
+              {stageIndex + 1}/{stagesInDifficulty}
+            </Text>
+          </Pressable>
           <View style={styles.coinPill}>
             <Text style={styles.coinLabel}>COIN</Text>
             <Text style={styles.coinValue}>{progress.coins}</Text>
           </View>
         </View>
+
+        {stagePickerOpen ? (
+          <StagePicker
+            activeIndex={stageIndex}
+            onSelect={(index) => {
+              onLoadStage(index);
+              setStagePickerOpen(false);
+            }}
+            selectableStageIndexes={selectableStageIndexes}
+          />
+        ) : null}
 
         <DifficultySelector
           activeIndex={difficultyIndex}
@@ -108,8 +133,18 @@ export function GameHud({
 
         <View style={styles.iconCluster}>
           <StartButton
-            disabled={won || (hasStarted && !isPaused)}
-            label={!hasStarted ? '시작' : isPaused ? '계속' : '진행 중'}
+            disabled={won ? !canAdvanceAfterWin : hasStarted && !isPaused}
+            label={
+              won
+                ? canAdvanceAfterWin
+                  ? '다음'
+                  : '완료'
+                : !hasStarted
+                  ? '시작'
+                  : isPaused
+                    ? '계속'
+                    : '진행 중'
+            }
             onPress={onStartPress}
           />
           <IconButton
@@ -126,25 +161,6 @@ export function GameHud({
           <Text numberOfLines={1} adjustsFontSizeToFit style={styles.statusLine}>
             {statusText} · {won ? '클리어' : '시간'} {formatElapsedTime(elapsedMs)} · 이동 {moves} · 코인 {collectedCoinCountInLevel}/{coinCountInLevel}
           </Text>
-        </View>
-
-        <View style={styles.stageNavRow}>
-          <StageNavButton
-            disabled={!canLoadPreviousStage}
-            label="‹"
-            onPress={() => onLoadStage(stageIndex - 1)}
-          />
-          <View style={styles.stageCounter}>
-            <Text style={styles.stageCounterTitle}>스테이지</Text>
-            <Text style={styles.stageCounterText}>
-              {stageIndex + 1} / {stagesInDifficulty}
-            </Text>
-          </View>
-          <StageNavButton
-            disabled={!canLoadNextStage}
-            label="›"
-            onPress={() => onLoadStage(stageIndex + 1)}
-          />
         </View>
 
         {shopOpen ? (
@@ -205,6 +221,48 @@ function DifficultySelector({
               ]}
             >
               {difficulty.label}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </ScrollView>
+  );
+}
+
+function StagePicker({
+  activeIndex,
+  onSelect,
+  selectableStageIndexes,
+}: {
+  activeIndex: number;
+  onSelect: (index: number) => void;
+  selectableStageIndexes: number[];
+}) {
+  return (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={styles.stagePickerRow}
+    >
+      {selectableStageIndexes.map((index) => {
+        const selected = index === activeIndex;
+        return (
+          <Pressable
+            key={index}
+            onPress={() => onSelect(index)}
+            style={({ pressed }) => [
+              styles.stagePickerButton,
+              selected ? styles.stagePickerButtonSelected : null,
+              pressed ? styles.stagePickerButtonPressed : null,
+            ]}
+          >
+            <Text
+              style={[
+                styles.stagePickerButtonText,
+                selected ? styles.stagePickerButtonTextSelected : null,
+              ]}
+            >
+              {index + 1}
             </Text>
           </Pressable>
         );
@@ -406,32 +464,6 @@ function RainbowSwatch() {
   );
 }
 
-function StageNavButton({
-  disabled,
-  label,
-  onPress,
-}: {
-  disabled: boolean;
-  label: string;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      disabled={disabled}
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.stageNavButton,
-        disabled ? styles.stageNavButtonDisabled : null,
-        pressed ? styles.stageNavButtonPressed : null,
-      ]}
-    >
-      <Text style={[styles.stageNavButtonText, disabled ? styles.stageNavButtonTextDisabled : null]}>
-        {label}
-      </Text>
-    </Pressable>
-  );
-}
-
 function StartButton({
   disabled,
   label,
@@ -524,6 +556,33 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '800',
   },
+  stageButton: {
+    width: 82,
+    height: 38,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#344461',
+    backgroundColor: '#10172A',
+  },
+  stageButtonActive: {
+    borderColor: '#65E7FF',
+    backgroundColor: '#17324C',
+  },
+  stageButtonPressed: {
+    backgroundColor: '#24365F',
+  },
+  stageButtonTitle: {
+    color: '#7F8DAA',
+    fontSize: 9,
+    fontWeight: '800',
+  },
+  stageButtonText: {
+    marginTop: 1,
+    color: '#F4EBD0',
+    fontSize: 12,
+    fontWeight: '900',
+  },
   coinPill: {
     minWidth: 82,
     height: 38,
@@ -579,6 +638,37 @@ const styles = StyleSheet.create({
   },
   difficultyButtonTextLocked: {
     color: '#6F7890',
+  },
+  stagePickerRow: {
+    minHeight: 31,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingRight: 6,
+  },
+  stagePickerButton: {
+    width: 34,
+    height: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#344461',
+    backgroundColor: '#10172A',
+  },
+  stagePickerButtonSelected: {
+    borderColor: '#FFD447',
+    backgroundColor: '#2B230D',
+  },
+  stagePickerButtonPressed: {
+    backgroundColor: '#24365F',
+  },
+  stagePickerButtonText: {
+    color: '#B8C3DF',
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  stagePickerButtonTextSelected: {
+    color: '#F4EBD0',
   },
   iconCluster: {
     minHeight: 38,
@@ -658,54 +748,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 16,
     fontWeight: '700',
-  },
-  stageNavRow: {
-    minHeight: 36,
-    flexDirection: 'row',
-    alignItems: 'stretch',
-    gap: 8,
-  },
-  stageNavButton: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: '#5A6D9B',
-    backgroundColor: '#19243F',
-  },
-  stageNavButtonPressed: {
-    backgroundColor: '#24365F',
-  },
-  stageNavButtonDisabled: {
-    borderColor: '#26314F',
-    backgroundColor: '#0D1326',
-  },
-  stageNavButtonText: {
-    color: '#F4EBD0',
-    fontSize: 22,
-    fontWeight: '900',
-  },
-  stageNavButtonTextDisabled: {
-    color: '#4F5B78',
-  },
-  stageCounter: {
-    width: 96,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#344461',
-    backgroundColor: '#10172A',
-  },
-  stageCounterTitle: {
-    color: '#7F8DAA',
-    fontSize: 9,
-    fontWeight: '800',
-  },
-  stageCounterText: {
-    marginTop: 1,
-    color: '#F4EBD0',
-    fontSize: 12,
-    fontWeight: '900',
   },
   shopPanel: {
     gap: 8,

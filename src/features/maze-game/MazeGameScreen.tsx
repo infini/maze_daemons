@@ -24,6 +24,8 @@ export function MazeGameScreen() {
   const animatedTokenPosition = useAnimatedToken({
     cellHeight,
     cellWidth,
+    moveKey: game.gameState.moveKey,
+    movePath: game.gameState.lastMovePath,
     position: game.gameState.player,
     resetKey: game.animationResetKey,
     tokenInsetX,
@@ -62,8 +64,7 @@ export function MazeGameScreen() {
         />
         <GameHud
           boardHeight={useSideLayout ? boardHeight : height}
-          canLoadNextStage={game.canLoadNextStage}
-          canLoadPreviousStage={game.canLoadPreviousStage}
+          canAdvanceAfterWin={game.canAdvanceAfterWin}
           coinCountInLevel={game.coinCountInLevel}
           collectedCoinCountInLevel={game.collectedCoinCountInLevel}
           difficulties={game.difficulties}
@@ -89,6 +90,7 @@ export function MazeGameScreen() {
           stageIndex={game.stageIndex}
           stagesInDifficulty={game.stagesInDifficulty}
           statusText={game.statusText}
+          selectableStageIndexes={game.selectableStageIndexes}
           unlockedDifficultyIds={game.unlockedDifficultyIds}
           won={game.gameState.isWon}
         />

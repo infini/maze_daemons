@@ -275,7 +275,7 @@ function floorCells(grid) {
   return cells;
 }
 
-function bfs(grid, start) {
+function bfs(grid, start, blocked = new Set()) {
   const distances = new Map();
   const queue = [start];
   distances.set(keyOf(start), 0);
@@ -290,6 +290,7 @@ function bfs(grid, start) {
         next.row >= grid.length ||
         next.col >= grid[0].length ||
         grid[next.row][next.col] === '#' ||
+        blocked.has(key) ||
         distances.has(key)
       ) {
         continue;
@@ -316,11 +317,11 @@ function chooseMarkers(grid, random, coinCount) {
 
   const exitPool = exitCandidates.slice(0, Math.max(1, Math.ceil(exitCandidates.length * 0.08)));
   const exit = exitPool[Math.floor(random() * exitPool.length)].cell;
-  const reachable = bfs(grid, start);
+  const coinReachable = bfs(grid, start, new Set([keyOf(exit)]));
   const coinCandidates = cells
-    .filter((cell) => !same(cell, exit))
+    .filter((cell) => !same(cell, exit) && coinReachable.has(keyOf(cell)))
     .map((cell) => {
-      const distance = reachable.get(keyOf(cell)) ?? 0;
+      const distance = coinReachable.get(keyOf(cell)) ?? 0;
       const distanceBias = distance / Math.max(1, grid.length + grid[0].length);
       return {
         cell,
@@ -404,9 +405,13 @@ function validateStage(stage) {
     throw new Error(`Exit is unreachable in ${stage.id}`);
   }
 
+  const reachableBeforeExit = bfs(grid, markers.start, new Set([keyOf(markers.exit)]));
   markers.coins.forEach((coin) => {
     if (!reachable.has(keyOf(coin))) {
       throw new Error(`Coin is unreachable in ${stage.id}`);
+    }
+    if (!reachableBeforeExit.has(keyOf(coin))) {
+      throw new Error(`Coin is only reachable through the exit in ${stage.id}`);
     }
   });
 }
@@ -429,7 +434,7 @@ function same(a, b) {
 }
 
 const catalog = {
-  version: 1,
+  version: 2,
   stagesPerDifficulty: 50,
   difficulties: difficulties.map((difficulty) => ({
     id: difficulty.id,
