@@ -1,4 +1,5 @@
 {
+  "clearEffectDurationMs": 1000,
   "trailVisibleSeconds": 5,
   "movement": {
     "maxTargetCornerTurns": 2,

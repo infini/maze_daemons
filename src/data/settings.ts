@@ -1,6 +1,7 @@
 import gameSettings from './game-settings.json';
 
 type GameSettings = {
+  clearEffectDurationMs: number;
   movement: {
     directionalFallbackEnabled: boolean;
     maxTargetCornerTurns: number;

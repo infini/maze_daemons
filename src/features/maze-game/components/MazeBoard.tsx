@@ -8,6 +8,7 @@ import type {
   TrailEffectId,
   TrailMap,
 } from '../../../game/types';
+import { ClearEffect } from './ClearEffect';
 import { Trail } from './Trail';
 
 export function MazeBoard({
@@ -16,6 +17,7 @@ export function MazeBoard({
   boardWidth,
   cellHeight,
   cellWidth,
+  clearEffectVisible,
   gameState,
   hiddenCoinIds,
   isPaused,
@@ -31,6 +33,7 @@ export function MazeBoard({
   boardWidth: number;
   cellHeight: number;
   cellWidth: number;
+  clearEffectVisible: boolean;
   gameState: GameState;
   hiddenCoinIds: Set<string>;
   isPaused: boolean;
@@ -92,6 +95,7 @@ export function MazeBoard({
       )}
 
       <Animated.View
+        key={`${level.id}:${gameState.moveKey}`}
         pointerEvents="none"
         style={[
           styles.animatedToken,
@@ -107,6 +111,8 @@ export function MazeBoard({
       >
         <Image source={playerImages[selectedSkinId]} style={styles.tokenImage} resizeMode="contain" />
       </Animated.View>
+
+      {clearEffectVisible ? <ClearEffect /> : null}
 
       {isPaused ? (
         <View style={styles.pauseOverlay}>

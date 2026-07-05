@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { difficulties } from '../../../data/levels';
 import { settings } from '../../../data/settings';
 import {
@@ -29,15 +29,13 @@ import { useProgressState } from './useProgressState';
 import { useShopActions } from './useShopActions';
 
 export function useMazeDaemonsGame() {
-  const [difficultyIndex, setDifficultyIndex] = useState(0);
-  const [stageIndex, setStageIndex] = useState(0);
+  const [run, setRun] = useState(() => createStageRun(0, 0, 0));
+  const { animationResetKey, difficultyIndex, gameState, level, stageIndex } = run;
   const difficulty = difficulties[difficultyIndex] ?? difficulties[0];
-  const levelData = difficulty.stages[stageIndex] ?? difficulty.stages[0];
-  const level = useMemo(() => prepareLevel(levelData), [levelData]);
   const [now, setNow] = useState(() => Date.now());
   const [timerState, setTimerState] = useState(() => createTimerState());
-  const [gameState, setGameState] = useState(() => createInitialState(level));
-  const [animationResetKey, setAnimationResetKey] = useState(0);
+  const clearEffectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [clearEffectVisible, setClearEffectVisible] = useState(false);
   const { progress, progressLoaded, setProgress } = useProgressState();
   const [shopMessage, setShopMessage] = useState('');
   const shopActions = useShopActions({ setProgress, setShopMessage });
@@ -114,24 +112,59 @@ export function useMazeDaemonsGame() {
     return () => clearInterval(intervalId);
   }, []);
 
-  const resetRunForLevel = useCallback((nextLevel: typeof level) => {
-    setNow(Date.now());
-    setAnimationResetKey((current) => current + 1);
-    setTimerState(createTimerState());
-    setGameState(createInitialState(nextLevel));
+  useEffect(
+    () => () => {
+      if (clearEffectTimeoutRef.current) {
+        clearTimeout(clearEffectTimeoutRef.current);
+      }
+    },
+    [],
+  );
+
+  const clearPendingClearEffect = useCallback(() => {
+    if (clearEffectTimeoutRef.current) {
+      clearTimeout(clearEffectTimeoutRef.current);
+      clearEffectTimeoutRef.current = null;
+    }
+    setClearEffectVisible(false);
   }, []);
+
+  const resetCurrentRun = useCallback(() => {
+    clearPendingClearEffect();
+    setNow(Date.now());
+    setTimerState(createTimerState());
+    setRun((current) => ({
+      ...current,
+      animationResetKey: current.animationResetKey + 1,
+      gameState: createInitialState(current.level),
+    }));
+  }, [clearPendingClearEffect]);
 
   const activateStage = useCallback(
     (nextDifficultyIndex: number, nextStageIndex: number) => {
-      const nextDifficulty = difficulties[nextDifficultyIndex] ?? difficulties[0];
-      const nextLevelData = nextDifficulty.stages[nextStageIndex] ?? nextDifficulty.stages[0];
-      const nextLevel = prepareLevel(nextLevelData);
-
-      setDifficultyIndex(nextDifficultyIndex);
-      setStageIndex(nextStageIndex);
-      resetRunForLevel(nextLevel);
+      clearPendingClearEffect();
+      setRun((current) =>
+        createStageRun(nextDifficultyIndex, nextStageIndex, current.animationResetKey + 1),
+      );
+      setNow(Date.now());
+      setTimerState(createTimerState());
     },
-    [resetRunForLevel],
+    [clearPendingClearEffect],
+  );
+
+  const scheduleStageClear = useCallback(
+    (nextLocation: { difficultyIndex: number; stageIndex: number } | null) => {
+      clearPendingClearEffect();
+      setClearEffectVisible(true);
+      clearEffectTimeoutRef.current = setTimeout(() => {
+        clearEffectTimeoutRef.current = null;
+        setClearEffectVisible(false);
+        if (nextLocation) {
+          activateStage(nextLocation.difficultyIndex, nextLocation.stageIndex);
+        }
+      }, settings.clearEffectDurationMs);
+    },
+    [activateStage, clearPendingClearEffect],
   );
 
   const commitNextState = useCallback(
@@ -145,9 +178,21 @@ export function useMazeDaemonsGame() {
         (coinId) => !previousCoinIds.has(coinId),
       );
       const completedStageKey = nextGameState.isWon ? level.id : null;
+      const nextCompletedStageIds = new Set(completedStageIds);
+      if (completedStageKey) {
+        nextCompletedStageIds.add(completedStageKey);
+      }
 
       setNow(timestamp);
-      setGameState(nextGameState);
+      setRun((current) => {
+        if (current.level.id !== level.id) {
+          return current;
+        }
+        return {
+          ...current,
+          gameState: nextGameState,
+        };
+      });
 
       if (newlyCollectedCoinIds.length > 0 || completedStageKey) {
         setProgress((current) => ({
@@ -169,9 +214,24 @@ export function useMazeDaemonsGame() {
 
       if (!gameState.isWon && nextGameState.isWon) {
         setTimerState((current) => finishTimer(current, timestamp));
+        const nextLocation = getNextStageLocation({
+          completedStageIds: nextCompletedStageIds,
+          difficulty,
+          difficultyIndex,
+          stageIndex,
+        });
+        scheduleStageClear(nextLocation);
       }
     },
-    [gameState, level.id],
+    [
+      completedStageIds,
+      difficulty,
+      difficultyIndex,
+      gameState,
+      level.id,
+      scheduleStageClear,
+      stageIndex,
+    ],
   );
 
   const moveToCell = useCallback(
@@ -201,10 +261,6 @@ export function useMazeDaemonsGame() {
     },
     [commitNextState, gameState, hasStarted, isPaused, level, timerState, trailVisibleMs],
   );
-
-  const resetRun = useCallback(() => {
-    resetRunForLevel(level);
-  }, [level, resetRunForLevel]);
 
   const togglePauseState = useCallback(() => {
     if (!hasStarted || gameState.isWon) {
@@ -275,6 +331,7 @@ export function useMazeDaemonsGame() {
   return {
     animationResetKey,
     canAdvanceAfterWin,
+    clearEffectVisible,
     coinCountInLevel: Object.keys(level.coins).length,
     collectedCoinCountInLevel: hiddenCoinIds.size,
     difficulties,
@@ -292,7 +349,7 @@ export function useMazeDaemonsGame() {
     onPauseToggle: togglePauseState,
     onPurchaseSkin: shopActions.purchaseSkin,
     onPurchaseTrailEffect: shopActions.purchaseTrailEffect,
-    onReset: resetRun,
+    onReset: resetCurrentRun,
     onSelectDifficulty: selectDifficulty,
     onStartPress: startRun,
     progress,
@@ -311,6 +368,32 @@ export function useMazeDaemonsGame() {
     trailMap,
     unlockedDifficultyIds,
     selectableStageIndexes,
+  };
+}
+
+function createStageRun(
+  requestedDifficultyIndex: number,
+  requestedStageIndex: number,
+  animationResetKey: number,
+) {
+  const difficultyIndex =
+    requestedDifficultyIndex >= 0 && requestedDifficultyIndex < difficulties.length
+      ? requestedDifficultyIndex
+      : 0;
+  const difficulty = difficulties[difficultyIndex] ?? difficulties[0];
+  const stageIndex =
+    requestedStageIndex >= 0 && requestedStageIndex < difficulty.stages.length
+      ? requestedStageIndex
+      : 0;
+  const levelData = difficulty.stages[stageIndex] ?? difficulty.stages[0];
+  const level = prepareLevel(levelData);
+
+  return {
+    animationResetKey,
+    difficultyIndex,
+    gameState: createInitialState(level),
+    level,
+    stageIndex,
   };
 }
 

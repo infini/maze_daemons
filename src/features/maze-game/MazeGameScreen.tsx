@@ -52,6 +52,7 @@ export function MazeGameScreen() {
           boardWidth={boardWidth}
           cellHeight={cellHeight}
           cellWidth={cellWidth}
+          clearEffectVisible={game.clearEffectVisible}
           gameState={game.gameState}
           hiddenCoinIds={game.hiddenCoinIds}
           isPaused={game.isPaused}
