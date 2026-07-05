@@ -122,16 +122,9 @@ export function GameHud({
           <IconButton active={shopOpen} label="상점" wide onPress={() => setShopOpen((current) => !current)} />
         </View>
 
-        <View style={styles.statusBand}>
-          <Text numberOfLines={2} style={styles.statusText}>
-            {statusText}
-          </Text>
-          <View style={styles.timerRow}>
-            <Text style={styles.timerLabel}>{won ? '클리어 시간' : '진행 시간'}</Text>
-            <Text style={styles.timerText}>{formatElapsedTime(elapsedMs)}</Text>
-          </View>
-          <Text style={styles.stageText}>
-            이동 {moves} · 코인 {collectedCoinCountInLevel}/{coinCountInLevel}
+        <View style={styles.statusStrip}>
+          <Text numberOfLines={1} adjustsFontSizeToFit style={styles.statusLine}>
+            {statusText} · {won ? '클리어' : '시간'} {formatElapsedTime(elapsedMs)} · 이동 {moves} · 코인 {collectedCoinCountInLevel}/{coinCountInLevel}
           </Text>
         </View>
 
@@ -506,11 +499,11 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
   panelContent: {
-    gap: 9,
+    gap: 6,
     paddingRight: 2,
   },
   hudRow: {
-    minHeight: 48,
+    minHeight: 42,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -522,7 +515,7 @@ const styles = StyleSheet.create({
   },
   appTitle: {
     color: '#F4EBD0',
-    fontSize: 29,
+    fontSize: 25,
     fontWeight: '900',
   },
   levelTitle: {
@@ -533,7 +526,7 @@ const styles = StyleSheet.create({
   },
   coinPill: {
     minWidth: 82,
-    height: 44,
+    height: 38,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
@@ -547,18 +540,18 @@ const styles = StyleSheet.create({
   },
   coinValue: {
     color: '#FFD447',
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '900',
   },
   difficultyRow: {
-    minHeight: 38,
+    minHeight: 34,
     flexDirection: 'row',
     gap: 6,
     paddingRight: 6,
   },
   difficultyButton: {
     width: 96,
-    minHeight: 36,
+    minHeight: 32,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
@@ -588,7 +581,7 @@ const styles = StyleSheet.create({
     color: '#6F7890',
   },
   iconCluster: {
-    minHeight: 42,
+    minHeight: 38,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 7,
@@ -596,7 +589,7 @@ const styles = StyleSheet.create({
   startButton: {
     flex: 1,
     minWidth: 96,
-    height: 42,
+    height: 38,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
@@ -620,8 +613,8 @@ const styles = StyleSheet.create({
     color: '#7F8DAA',
   },
   iconButton: {
-    width: 42,
-    height: 42,
+    width: 38,
+    height: 38,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
@@ -651,47 +644,23 @@ const styles = StyleSheet.create({
   iconButtonTextDisabled: {
     color: '#4F5B78',
   },
-  statusBand: {
-    minHeight: 78,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+  statusStrip: {
+    minHeight: 34,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: '#344461',
     backgroundColor: '#11182D',
   },
-  statusText: {
+  statusLine: {
     color: '#F4EBD0',
-    fontSize: 14,
-    lineHeight: 18,
-    fontWeight: '700',
-  },
-  timerRow: {
-    minHeight: 28,
-    marginTop: 4,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  timerLabel: {
-    color: '#B8C3DF',
     fontSize: 13,
+    lineHeight: 16,
     fontWeight: '700',
-  },
-  timerText: {
-    color: '#FFD447',
-    fontSize: 18,
-    fontWeight: '900',
-  },
-  stageText: {
-    marginTop: 2,
-    color: '#65E7FF',
-    fontSize: 12,
-    fontWeight: '800',
   },
   stageNavRow: {
-    minHeight: 42,
+    minHeight: 36,
     flexDirection: 'row',
     alignItems: 'stretch',
     gap: 8,
@@ -720,7 +689,7 @@ const styles = StyleSheet.create({
     color: '#4F5B78',
   },
   stageCounter: {
-    width: 104,
+    width: 96,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
@@ -729,13 +698,13 @@ const styles = StyleSheet.create({
   },
   stageCounterTitle: {
     color: '#7F8DAA',
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '800',
   },
   stageCounterText: {
     marginTop: 1,
     color: '#F4EBD0',
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '900',
   },
   shopPanel: {

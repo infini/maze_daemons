@@ -11,7 +11,7 @@ export function getBoardMetrics({
   levelWidth: number;
   width: number;
 }) {
-  const padding = isLandscape ? 8 : 8;
+  const padding = isLandscape ? 4 : 4;
   const panelWidth = isLandscape ? Math.min(340, Math.max(292, width * 0.22)) : width - padding * 2;
   const maxBoardWidth = isLandscape ? width - panelWidth - padding * 3 : width - padding * 2;
   const maxBoardHeight = isLandscape ? height - padding * 2 : height * 0.72;

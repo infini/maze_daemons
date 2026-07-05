@@ -29,7 +29,7 @@ export function MazeGameScreen() {
 
   return (
     <View style={styles.screen}>
-      <ExpoStatusBar style="light" />
+      <ExpoStatusBar hidden style="light" />
       {useSideLayout ? (
         renderContent()
       ) : (
@@ -105,8 +105,8 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 4,
-    gap: 8,
+    padding: 2,
+    gap: 6,
   },
   stageSide: {
     flexDirection: 'row',
@@ -114,7 +114,7 @@ const styles = StyleSheet.create({
   stageStacked: {
     flexDirection: 'column',
     justifyContent: 'flex-start',
-    paddingTop: 10,
-    paddingBottom: 72,
+    paddingTop: 2,
+    paddingBottom: 48,
   },
 });
