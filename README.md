@@ -1,1 +1,3 @@
-# maze_daemons
+# MazeDaemons
+
+Solo high-difficulty maze game for tablets.
