@@ -117,6 +117,7 @@ export type SkinItem = {
 };
 
 export type ProgressState = {
+  audioSettings: AudioSettings;
   coins: number;
   collectedCoinKeys: string[];
   completedStageKeys: string[];
@@ -125,4 +126,11 @@ export type ProgressState = {
   selectedTrailEffectId: TrailEffectId | null;
   purchasedSkinIds: ShopSkinId[];
   selectedSkinId: PlayerSkinId;
+};
+
+export type AudioSettings = {
+  bgmVolume: number;
+  clearVolume: number;
+  coinPickupVolume: number;
+  tapVolume: number;
 };

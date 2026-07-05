@@ -310,10 +310,15 @@ function degree(grid, position) {
 function chooseMarkers(grid, random, coinCount) {
   const start = { row: 1, col: 1 };
   const distances = bfs(grid, start);
+  const minimumExitDistance = getMinimumExitDistance(grid[0].length, grid.length);
   const cells = floorCells(grid).filter((cell) => !same(cell, start));
-  const exitCandidates = cells
+  const scoredExitCandidates = cells
     .map((cell) => ({ cell, score: distances.get(keyOf(cell)) ?? 0, deadEnd: degree(grid, cell) === 1 }))
-    .sort((a, b) => Number(b.deadEnd) - Number(a.deadEnd) || b.score - a.score);
+    .sort((a, b) => b.score - a.score || Number(b.deadEnd) - Number(a.deadEnd));
+  const distantExitCandidates = scoredExitCandidates.filter(
+    (candidate) => candidate.score >= minimumExitDistance,
+  );
+  const exitCandidates = distantExitCandidates.length > 0 ? distantExitCandidates : scoredExitCandidates;
 
   const exitPool = exitCandidates.slice(0, Math.max(1, Math.ceil(exitCandidates.length * 0.08)));
   const exit = exitPool[Math.floor(random() * exitPool.length)].cell;
@@ -345,6 +350,10 @@ function chooseMarkers(grid, random, coinCount) {
   }
 
   return { start, exit, coins: selectedCoins };
+}
+
+function getMinimumExitDistance(width, height) {
+  return Math.floor((width + height) * 0.9);
 }
 
 function tooCloseToExisting(cell, selected, minDistance) {
@@ -404,6 +413,13 @@ function validateStage(stage) {
   if (!reachable.has(keyOf(markers.exit))) {
     throw new Error(`Exit is unreachable in ${stage.id}`);
   }
+  const exitDistance = reachable.get(keyOf(markers.exit)) ?? 0;
+  const minimumExitDistance = getMinimumExitDistance(stage.rows[0].length, stage.rows.length);
+  if (exitDistance < minimumExitDistance) {
+    throw new Error(
+      `Exit is too close in ${stage.id}. distance=${exitDistance}, minimum=${minimumExitDistance}`,
+    );
+  }
 
   const reachableBeforeExit = bfs(grid, markers.start, new Set([keyOf(markers.exit)]));
   markers.coins.forEach((coin) => {
@@ -434,7 +450,7 @@ function same(a, b) {
 }
 
 const catalog = {
-  version: 2,
+  version: 3,
   stagesPerDifficulty: 50,
   difficulties: difficulties.map((difficulty) => ({
     id: difficulty.id,

@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { Animated, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { playerImages, tileImages } from '../../../game/assets';
 import type {
@@ -10,8 +11,10 @@ import type {
 } from '../../../game/types';
 import { ClearEffect } from './ClearEffect';
 import { CoinPickupEffect } from './CoinPickupEffect';
+import { MazeAtmosphere, MazeCellDecoration } from './MazeAtmosphere';
 import { Trail } from './Trail';
 import type { CoinPickupEffect as CoinPickupEffectData } from '../types';
+import { buildMazeDecorations } from '../utils/mazeDecorations';
 
 export function MazeBoard({
   animatedTokenPosition,
@@ -48,6 +51,8 @@ export function MazeBoard({
   tokenSize: number;
   trailMap: TrailMap;
 }) {
+  const decorationByCell = useMemo(() => buildMazeDecorations(level), [level]);
+
   return (
     <Pressable
       disabled={isPaused || gameState.isWon}
@@ -61,6 +66,7 @@ export function MazeBoard({
       {level.cells.map((row, rowIndex) =>
         row.map((cell) => {
           const key = `${cell.row}:${cell.col}`;
+          const decoration = decorationByCell.get(key);
           const trails = trailMap.get(key);
           const coinVisible = cell.kind === 'coin' && cell.coinId && !hiddenCoinIds.has(cell.coinId);
 
@@ -79,6 +85,7 @@ export function MazeBoard({
                 },
               ]}
             >
+              {decoration ? <MazeCellDecoration decoration={decoration} /> : null}
               {selectedTrailEffectId && trails ? (
                 <Trail
                   col={cell.col}
@@ -97,6 +104,8 @@ export function MazeBoard({
           );
         }),
       )}
+
+      <MazeAtmosphere />
 
       <Animated.View
         key={`${level.id}:${gameState.moveKey}`}
@@ -148,22 +157,22 @@ const styles = StyleSheet.create({
     position: 'relative',
     overflow: 'hidden',
     borderWidth: 3,
-    borderColor: '#5F6F99',
-    backgroundColor: '#09101E',
+    borderColor: '#4B5850',
+    backgroundColor: '#030607',
   },
   cell: {
     position: 'absolute',
     overflow: 'hidden',
   },
   floorCell: {
-    backgroundColor: '#0E1628',
+    backgroundColor: '#07100F',
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(43, 57, 88, 0.28)',
+    borderColor: 'rgba(74, 93, 80, 0.28)',
   },
   wallCell: {
-    backgroundColor: '#273653',
+    backgroundColor: '#232A31',
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(112, 126, 166, 0.38)',
+    borderColor: 'rgba(118, 126, 116, 0.34)',
   },
   tileOverlay: {
     position: 'absolute',

@@ -93,6 +93,18 @@ function fillCircle(image, cx, cy, radius, rgba) {
   }
 }
 
+function fillEllipse(image, cx, cy, radiusX, radiusY, rgba) {
+  for (let y = Math.floor(cy - radiusY); y <= Math.ceil(cy + radiusY); y += 1) {
+    for (let x = Math.floor(cx - radiusX); x <= Math.ceil(cx + radiusX); x += 1) {
+      const dx = (x - cx) / radiusX;
+      const dy = (y - cy) / radiusY;
+      if (dx * dx + dy * dy <= 1) {
+        setPixel(image, x, y, rgba);
+      }
+    }
+  }
+}
+
 function drawLine(image, x1, y1, x2, y2, width, rgba) {
   const steps = Math.max(Math.abs(x2 - x1), Math.abs(y2 - y1));
   for (let index = 0; index <= steps; index += 1) {
@@ -104,6 +116,21 @@ function drawLine(image, x1, y1, x2, y2, width, rgba) {
       Math.max(1, width / 2),
       rgba,
     );
+  }
+}
+
+function drawQuadratic(image, x1, y1, cx, cy, x2, y2, width, rgba) {
+  const steps = Math.max(Math.abs(x2 - x1), Math.abs(y2 - y1), Math.abs(cx - x1), Math.abs(cy - y1));
+  let previousX = x1;
+  let previousY = y1;
+  for (let index = 1; index <= steps; index += 1) {
+    const t = index / steps;
+    const inv = 1 - t;
+    const x = inv * inv * x1 + 2 * inv * t * cx + t * t * x2;
+    const y = inv * inv * y1 + 2 * inv * t * cy + t * t * y2;
+    drawLine(image, Math.round(previousX), Math.round(previousY), Math.round(x), Math.round(y), width, rgba);
+    previousX = x;
+    previousY = y;
   }
 }
 
@@ -181,6 +208,98 @@ function wallTile() {
   fillRect(image, 30, 0, 3, 22, color('#101729'));
   fillRect(image, 17, 24, 3, 36, color('#101729'));
   fillRect(image, 44, 24, 3, 36, color('#101729'));
+  return image;
+}
+
+function graveTile() {
+  const image = createImage(128, 128);
+  fill(image, color('#000000', 0));
+  fillEllipse(image, 64, 105, 48, 10, color('#020505', 120));
+  fillRect(image, 29, 103, 70, 7, color('#111815', 180));
+  fillRect(image, 35, 56, 58, 51, color('#57615E', 244));
+  fillEllipse(image, 64, 56, 29, 24, color('#6E7873', 245));
+  fillRect(image, 39, 55, 50, 49, color('#6E7873', 245));
+  fillRect(image, 35, 84, 5, 21, color('#2D3533', 210));
+  fillRect(image, 88, 61, 5, 44, color('#303936', 210));
+  fillRect(image, 40, 104, 51, 5, color('#222B28', 225));
+  fillRect(image, 32, 110, 65, 5, color('#121A17', 210));
+  fillRect(image, 44, 62, 38, 2, color('#9EA8A0', 105));
+  fillRect(image, 44, 67, 38, 1, color('#323B38', 105));
+  fillRect(image, 57, 45, 14, 31, color('#2A3330', 145));
+  fillRect(image, 49, 57, 30, 9, color('#2A3330', 145));
+  fillRect(image, 60, 48, 8, 25, color('#88928C', 55));
+  fillRect(image, 52, 59, 24, 3, color('#88928C', 45));
+  drawLine(image, 81, 77, 72, 88, 2, color('#222B29', 150));
+  drawLine(image, 72, 88, 79, 96, 2, color('#222B29', 135));
+  drawLine(image, 48, 80, 55, 88, 2, color('#222B29', 120));
+  drawLine(image, 55, 88, 50, 98, 2, color('#222B29', 115));
+  drawLine(image, 38, 48, 46, 39, 2, color('#AAB2AC', 75));
+  drawLine(image, 42, 74, 50, 74, 2, color('#232B29', 150));
+  drawLine(image, 42, 74, 42, 90, 2, color('#232B29', 150));
+  drawLine(image, 44, 82, 50, 90, 2, color('#232B29', 145));
+  drawLine(image, 56, 74, 56, 91, 2, color('#232B29', 150));
+  drawLine(image, 56, 74, 65, 74, 2, color('#232B29', 150));
+  drawLine(image, 56, 82, 63, 82, 2, color('#232B29', 135));
+  drawLine(image, 56, 91, 65, 91, 2, color('#232B29', 150));
+  drawLine(image, 72, 74, 72, 91, 2, color('#232B29', 150));
+  drawLine(image, 72, 74, 81, 74, 2, color('#232B29', 150));
+  drawLine(image, 81, 74, 81, 82, 2, color('#232B29', 140));
+  drawLine(image, 72, 82, 81, 82, 2, color('#232B29', 135));
+  drawLine(image, 76, 82, 83, 92, 2, color('#232B29', 145));
+  fillRect(image, 34, 99, 10, 8, color('#435442', 185));
+  fillRect(image, 42, 96, 4, 10, color('#5D7754', 170));
+  fillRect(image, 82, 100, 11, 7, color('#435442', 185));
+  fillRect(image, 88, 94, 4, 12, color('#5B754F', 160));
+  fillRect(image, 50, 108, 7, 4, color('#1D2B20', 170));
+  fillRect(image, 70, 108, 9, 4, color('#1D2B20', 170));
+  return image;
+}
+
+function spiderWebTile() {
+  const image = createImage(128, 128);
+  fill(image, color('#000000', 0));
+  const anchor = [10, 9];
+  const web = color('#E5ECE4', 128);
+  const brightWeb = color('#FFFFFF', 150);
+  const softWeb = color('#DCE3DA', 72);
+  const strands = [
+    [126, 7],
+    [126, 35],
+    [121, 68],
+    [94, 102],
+    [56, 124],
+    [20, 127],
+    [0, 114],
+    [0, 74],
+    [0, 34],
+    [0, 0],
+  ];
+
+  for (const [x, y] of strands) {
+    drawLine(image, anchor[0], anchor[1], x, y, 2, softWeb);
+  }
+  drawLine(image, 0, 0, 127, 0, 3, color('#FFFFFF', 100));
+  drawLine(image, 0, 0, 0, 127, 3, color('#FFFFFF', 100));
+
+  drawQuadratic(image, 28, 0, 20, 24, 0, 29, 2, web);
+  drawQuadratic(image, 53, 0, 42, 42, 0, 54, 2, softWeb);
+  drawQuadratic(image, 83, 0, 62, 69, 0, 83, 2, softWeb);
+  drawQuadratic(image, 113, 0, 83, 94, 8, 114, 2, color('#DCE3DA', 62));
+  drawQuadratic(image, 127, 17, 88, 20, 60, 0, 2, web);
+  drawQuadratic(image, 127, 44, 77, 49, 42, 6, 2, web);
+  drawQuadratic(image, 124, 73, 70, 76, 24, 22, 2, softWeb);
+  drawQuadratic(image, 101, 104, 60, 100, 10, 48, 2, softWeb);
+  drawQuadratic(image, 63, 124, 39, 103, 0, 80, 2, color('#DCE3DA', 58));
+  drawQuadratic(image, 15, 126, 17, 78, 0, 42, 2, color('#DCE3DA', 54));
+  drawLine(image, 63, 8, 72, 20, 1, brightWeb);
+  drawLine(image, 72, 20, 67, 29, 1, brightWeb);
+  drawLine(image, 31, 36, 39, 47, 1, color('#FFFFFF', 118));
+  drawLine(image, 39, 47, 33, 58, 1, color('#FFFFFF', 100));
+  fillCircle(image, 58, 72, 3, color('#CDD6CE', 90));
+  drawLine(image, 58, 72, 54, 78, 1, color('#CDD6CE', 88));
+  drawLine(image, 58, 72, 64, 79, 1, color('#CDD6CE', 88));
+  drawLine(image, 56, 73, 50, 73, 1, color('#CDD6CE', 88));
+  drawLine(image, 60, 73, 67, 73, 1, color('#CDD6CE', 88));
   return image;
 }
 
@@ -346,6 +465,45 @@ function enderDragon() {
   return image;
 }
 
+function ghostFace() {
+  const image = createImage(512, 512);
+  fill(image, color('#000000', 0));
+  fillEllipse(image, 256, 273, 188, 190, color('#020506', 116));
+  fillEllipse(image, 256, 242, 154, 164, color('#EFF6ED', 238));
+  fillEllipse(image, 214, 210, 92, 122, color('#FFFFFF', 205));
+  fillEllipse(image, 311, 224, 78, 116, color('#CAD6CE', 150));
+  fillRect(image, 115, 286, 282, 90, color('#EFF6ED', 232));
+  fillRect(image, 115, 370, 38, 58, color('#EFF6ED', 230));
+  fillRect(image, 187, 370, 42, 78, color('#EFF6ED', 228));
+  fillRect(image, 265, 370, 42, 74, color('#EFF6ED', 224));
+  fillRect(image, 352, 370, 45, 56, color('#EFF6ED', 220));
+  fillRect(image, 141, 420, 47, 23, color('#C7D4CC', 170));
+  fillRect(image, 230, 432, 36, 24, color('#C7D4CC', 160));
+  fillRect(image, 311, 424, 43, 25, color('#C7D4CC', 150));
+  fillEllipse(image, 197, 214, 40, 50, color('#111719', 230));
+  fillEllipse(image, 315, 214, 40, 50, color('#111719', 230));
+  fillEllipse(image, 184, 196, 12, 16, color('#DFFFF4', 130));
+  fillEllipse(image, 302, 196, 12, 16, color('#DFFFF4', 120));
+  fillEllipse(image, 256, 305, 58, 54, color('#111719', 230));
+  fillEllipse(image, 256, 293, 32, 25, color('#2A3838', 126));
+  fillRect(image, 153, 154, 74, 11, color('#C1CBC4', 125));
+  fillRect(image, 284, 154, 74, 11, color('#A9B6AE', 112));
+  drawLine(image, 145, 286, 114, 330, 5, color('#B4C0B8', 110));
+  drawLine(image, 368, 286, 403, 330, 5, color('#A7B4AC', 102));
+  drawLine(image, 174, 342, 206, 358, 4, color('#B8C5BD', 112));
+  drawLine(image, 338, 342, 304, 358, 4, color('#A8B5AD', 104));
+  drawLine(image, 235, 100, 222, 156, 3, color('#DDE7DF', 120));
+  drawLine(image, 337, 119, 318, 162, 3, color('#B8C6BD', 105));
+  for (let index = 0; index < 56; index += 1) {
+    const x = 132 + Math.floor(pseudoNoise(index, 3, 91) * 248);
+    const y = 102 + Math.floor(pseudoNoise(index, 7, 97) * 268);
+    const alpha = 16 + Math.floor(pseudoNoise(index, 11, 101) * 34);
+    fillCircle(image, x, y, 1 + Math.floor(pseudoNoise(index, 13, 103) * 2), color('#17201C', alpha));
+  }
+  fillEllipse(image, 256, 462, 160, 20, color('#000000', 86));
+  return image;
+}
+
 function iconBackground(size) {
   const image = createImage(size, size);
   const base = color('#08101F');
@@ -409,6 +567,8 @@ writePng(join(rootDir, 'assets/tiles/floor.png'), floorTile());
 writePng(join(rootDir, 'assets/tiles/wall.png'), wallTile());
 writePng(join(rootDir, 'assets/tiles/coin.png'), coinTile());
 writePng(join(rootDir, 'assets/tiles/exit.png'), exitTile());
+writePng(join(rootDir, 'assets/tiles/grave.png'), graveTile());
+writePng(join(rootDir, 'assets/tiles/spider-web.png'), spiderWebTile());
 writePng(join(rootDir, 'assets/characters/zombie.png'), zombie());
 writePng(join(rootDir, 'assets/characters/creeper.png'), creeper());
 writePng(join(rootDir, 'assets/characters/skeleton.png'), skeleton());
@@ -419,6 +579,7 @@ writePng(join(rootDir, 'assets/characters/enderman.png'), enderman());
 writePng(join(rootDir, 'assets/characters/iron-golem.png'), ironGolem());
 writePng(join(rootDir, 'assets/characters/warden.png'), warden());
 writePng(join(rootDir, 'assets/characters/ender-dragon.png'), enderDragon());
+writePng(join(rootDir, 'assets/effects/ghost-face.png'), ghostFace());
 writePng(join(rootDir, 'assets/icon.png'), appIcon(1024));
 writePng(join(rootDir, 'assets/favicon.png'), appIcon(256));
 writePng(join(rootDir, 'assets/splash-icon.png'), appIcon(1024, true));

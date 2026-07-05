@@ -1,18 +1,22 @@
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type {
+  AudioSettings,
   DifficultyData,
   PlayerSkinId,
   ProgressState,
   ShopSkinId,
   TrailEffectId,
 } from '../../../game/types';
+import type { AudioVolumeKey } from '../types';
 import { formatElapsedTime } from '../utils/timer';
 import { IconButton, StartButton } from './hud/HudButtons';
+import { SettingsPanel } from './hud/SettingsPanel';
 import { ShopPanel } from './hud/ShopPanel';
 import { DifficultySelector, StagePicker } from './hud/StageSelectors';
 
 export function GameHud({
+  audioSettings,
   boardHeight,
   canAdvanceAfterWin,
   coinCountInLevel,
@@ -30,8 +34,10 @@ export function GameHud({
   onPauseToggle,
   onPurchaseSkin,
   onPurchaseTrailEffect,
+  onPreviewAudio,
   onReset,
   onSelectDifficulty,
+  onSetAudioVolume,
   onStartPress,
   panelWidth,
   progress,
@@ -44,6 +50,7 @@ export function GameHud({
   unlockedDifficultyIds,
   won,
 }: {
+  audioSettings: AudioSettings;
   boardHeight: number;
   canAdvanceAfterWin: boolean;
   coinCountInLevel: number;
@@ -61,8 +68,10 @@ export function GameHud({
   onPauseToggle: () => void;
   onPurchaseSkin: (skinId: ShopSkinId) => void;
   onPurchaseTrailEffect: (effectId: TrailEffectId) => void;
+  onPreviewAudio: (key: AudioVolumeKey) => void;
   onReset: () => void;
   onSelectDifficulty: (index: number) => void;
+  onSetAudioVolume: (key: AudioVolumeKey, value: number) => void;
   onStartPress: () => void;
   panelWidth: number;
   progress: ProgressState;
@@ -75,6 +84,7 @@ export function GameHud({
   unlockedDifficultyIds: Set<string>;
   won: boolean;
 }) {
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [shopOpen, setShopOpen] = useState(false);
   const [stagePickerOpen, setStagePickerOpen] = useState(false);
 
@@ -123,12 +133,14 @@ export function GameHud({
           />
         ) : null}
 
-        <DifficultySelector
-          activeIndex={difficultyIndex}
-          difficulties={difficulties}
-          onSelect={onSelectDifficulty}
-          unlockedDifficultyIds={unlockedDifficultyIds}
-        />
+        {settingsOpen ? null : (
+          <DifficultySelector
+            activeIndex={difficultyIndex}
+            difficulties={difficulties}
+            onSelect={onSelectDifficulty}
+            unlockedDifficultyIds={unlockedDifficultyIds}
+          />
+        )}
 
         <View style={styles.iconCluster}>
           <StartButton
@@ -153,8 +165,33 @@ export function GameHud({
             onPress={onPauseToggle}
           />
           <IconButton label="↻" onPress={onReset} />
-          <IconButton active={shopOpen} label="상점" wide onPress={() => setShopOpen((current) => !current)} />
+          <IconButton
+            active={settingsOpen}
+            label="⚙"
+            onPress={() => {
+              setSettingsOpen((current) => !current);
+              setShopOpen(false);
+            }}
+          />
+          <IconButton
+            active={shopOpen}
+            label="상점"
+            wide
+            onPress={() => {
+              setShopOpen((current) => !current);
+              setSettingsOpen(false);
+            }}
+          />
         </View>
+
+        {settingsOpen ? (
+          <SettingsPanel
+            audioSettings={audioSettings}
+            onPreviewAudio={onPreviewAudio}
+            onSetAudioVolume={onSetAudioVolume}
+            progressLoaded={progressLoaded}
+          />
+        ) : null}
 
         <View style={styles.statusStrip}>
           <Text numberOfLines={1} adjustsFontSizeToFit style={styles.statusLine}>

@@ -1,8 +1,15 @@
 import type { PlayerSkinId, ProgressState, SkinItem, TrailEffectItem } from '../game/types';
+import { settings } from './settings';
 
 export const defaultPlayerSkinId: PlayerSkinId = 'zombie';
 
 export const defaultProgress: ProgressState = {
+  audioSettings: {
+    bgmVolume: settings.audio.bgmVolume,
+    clearVolume: settings.audio.clearVolume,
+    coinPickupVolume: settings.audio.coinPickupVolume,
+    tapVolume: settings.audio.tapVolume,
+  },
   coins: 0,
   collectedCoinKeys: [],
   completedStageKeys: [],

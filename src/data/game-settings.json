@@ -1,6 +1,19 @@
 {
+  "audio": {
+    "bgmVolume": 0.18,
+    "clearVolume": 0.9,
+    "coinPickupVolume": 0.76,
+    "tapVolume": 0.34,
+    "volumeStep": 0.1
+  },
   "clearEffectDurationMs": 1000,
   "coinPickupEffectDurationMs": 720,
+  "jumpScare": {
+    "chancePerTap": 0.035,
+    "cooldownMs": 18000,
+    "durationMs": 650,
+    "enabled": true
+  },
   "trailVisibleSeconds": 5,
   "movement": {
     "maxTargetCornerTurns": 2,

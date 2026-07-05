@@ -5,6 +5,7 @@
   "dependencies": {
     "@react-native-async-storage/async-storage": "2.2.0",
     "expo": "~57.0.2",
+    "expo-audio": "~57.0.0",
     "expo-status-bar": "~57.0.0",
     "react": "19.2.3",
     "react-native": "0.86.0"
@@ -16,6 +17,7 @@
   "scripts": {
     "generate:assets": "node scripts/generate-assets.mjs",
     "generate:levels": "node scripts/generate-levels.mjs",
+    "generate:sounds": "node scripts/generate-sounds.mjs",
     "start": "expo start",
     "prebuild:android": "expo prebuild --platform android",
     "build:android:release": "cd android && ./gradlew assembleRelease",

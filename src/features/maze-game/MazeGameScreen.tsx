@@ -1,9 +1,14 @@
+import { useCallback, useEffect } from 'react';
 import { StatusBar as ExpoStatusBar } from 'expo-status-bar';
 import { ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
+import type { Position } from '../../game/types';
 import { GameHud } from './components/GameHud';
+import { JumpScareOverlay } from './components/JumpScareOverlay';
 import { MazeBoard } from './components/MazeBoard';
 import { useAnimatedToken } from './hooks/useAnimatedToken';
+import { useJumpScare } from './hooks/useJumpScare';
 import { useMazeDaemonsGame } from './hooks/useMazeDaemonsGame';
+import { useMazeSounds } from './hooks/useMazeSounds';
 import { getBoardMetrics } from './utils/layout';
 
 export function MazeGameScreen() {
@@ -11,6 +16,8 @@ export function MazeGameScreen() {
   const isLandscape = width > height;
   const useSideLayout = isLandscape || width >= 1000;
   const game = useMazeDaemonsGame();
+  const { playClear, playCoinPickup, playJumpScare, playTap, previewSound } = useMazeSounds(game.progress.audioSettings);
+  const { jumpScareKey, tryTrigger: tryJumpScare } = useJumpScare();
   const { boardHeight, boardWidth, cellHeight, cellWidth, panelWidth } = getBoardMetrics({
     height,
     isLandscape: useSideLayout,
@@ -31,6 +38,28 @@ export function MazeGameScreen() {
     tokenInsetX,
     tokenInsetY,
   });
+  const handleCellPress = useCallback(
+    (position: Position) => {
+      playTap();
+      game.onCellPress(position);
+      if (tryJumpScare()) {
+        playJumpScare();
+      }
+    },
+    [game.onCellPress, playJumpScare, playTap, tryJumpScare],
+  );
+
+  useEffect(() => {
+    if (game.coinPickupSoundKey > 0) {
+      playCoinPickup();
+    }
+  }, [game.coinPickupSoundKey, playCoinPickup]);
+
+  useEffect(() => {
+    if (game.clearSoundKey > 0) {
+      playClear();
+    }
+  }, [game.clearSoundKey, playClear]);
 
   return (
     <View style={styles.screen}>
@@ -40,6 +69,7 @@ export function MazeGameScreen() {
       ) : (
         <ScrollView contentContainerStyle={styles.scrollContent}>{renderContent()}</ScrollView>
       )}
+      <JumpScareOverlay triggerKey={jumpScareKey} />
     </View>
   );
 
@@ -58,13 +88,14 @@ export function MazeGameScreen() {
           hiddenCoinIds={game.hiddenCoinIds}
           isPaused={game.isPaused}
           level={game.level}
-          onCellPress={game.onCellPress}
+          onCellPress={handleCellPress}
           selectedSkinId={game.progress.selectedSkinId}
           selectedTrailEffectId={game.progress.selectedTrailEffectId}
           tokenSize={tokenSize}
           trailMap={game.trailMap}
         />
         <GameHud
+          audioSettings={game.progress.audioSettings}
           boardHeight={useSideLayout ? boardHeight : height}
           canAdvanceAfterWin={game.canAdvanceAfterWin}
           coinCountInLevel={game.coinCountInLevel}
@@ -82,8 +113,10 @@ export function MazeGameScreen() {
           onPauseToggle={game.onPauseToggle}
           onPurchaseSkin={game.onPurchaseSkin}
           onPurchaseTrailEffect={game.onPurchaseTrailEffect}
+          onPreviewAudio={previewSound}
           onReset={game.onReset}
           onSelectDifficulty={game.onSelectDifficulty}
+          onSetAudioVolume={game.onSetAudioVolume}
           onStartPress={game.onStartPress}
           panelWidth={useSideLayout ? panelWidth : boardWidth}
           progress={game.progress}

@@ -34,9 +34,12 @@ Assets are generated from scripts:
 
 ```bash
 npm run generate:assets
+npm run generate:sounds
 ```
 
-Generated asset output is written under `assets/`.
+Generated visual and audio asset output is written under `assets/`.
+
+`generate:sounds` uses local synthesis for all sounds. On macOS it also uses the built-in `say` and `afconvert` tools as a clearer voice layer for the clear cue, then falls back to pure local synthesis when those tools are unavailable.
 
 ## Generate Levels
 
@@ -52,9 +55,10 @@ The generator validates:
 - exit marker exists
 - at least one coin exists
 - exit is reachable
+- exit path distance is not too close to the start
 - every coin is reachable before entering the exit
 
-If generated stage semantics change, update `scripts/generate-levels.mjs` and consider bumping the catalog version. The catalog version is tied to the AsyncStorage progress key.
+If generated stage semantics change, update `scripts/generate-levels.mjs` and consider bumping the catalog version. The catalog version is tied to the AsyncStorage progress key, and compatible older progress is migrated into the newest key on launch.
 
 ## Type Check
 
@@ -96,14 +100,20 @@ adb shell monkey -p com.infini.mazedaemons -c android.intent.category.LAUNCHER 1
 After installing on the tablet:
 
 1. Confirm the app opens without crash.
-2. Confirm coins are visible on a fresh catalog version.
-3. Collect a visible coin and confirm the pink pig `YUMMY!` effect appears briefly.
-4. Tap a reachable path cell and confirm movement occurs.
-5. Tap a cell that requires up to two turns and confirm direct movement.
-6. Clear a stage and confirm `CLEAR` appears, then the next stage starts at its own start cell.
-7. Relaunch the app and confirm it restores the last played stage.
-8. Use the stage button to return to a cleared stage; it must also start at that stage's start cell.
-9. Open the shop and confirm products still render horizontally.
+2. Confirm the maze board shows the graveyard style with graves, spider webs, fog, and visible paths.
+3. Confirm coins are visible on a fresh catalog version.
+4. Collect a visible coin and confirm the pink pig `YUMMY!` effect appears briefly.
+5. Confirm BGM plays quietly after app launch.
+6. Tap a reachable path cell and confirm movement occurs and the touch sound plays.
+7. Tap a cell that requires up to two turns and confirm direct movement.
+8. Collect a coin and confirm the coin sound is the short full-belly burp cue.
+9. Clear a stage and confirm the ender dragon `CLEAR` effect and heavy eerie clear sound play, then the next stage starts at its own start cell.
+10. Trigger or temporarily increase `jumpScare.chancePerTap` and confirm the full-screen block ghost appears without gore or graphic imagery.
+11. Open settings and confirm BGM, touch, coin, and clear volume controls can preview sounds and persist after relaunch.
+12. Relaunch the app and confirm it restores the last played stage.
+13. After bumping the stage catalog version, install without clearing app data and confirm the previous unlocked difficulty, stage, coins, purchases, and selected items migrate.
+14. Use the stage button to return to a cleared stage; it must also start at that stage's start cell.
+15. Open the shop and confirm products still render horizontally.
 
 Useful log command:
 
@@ -126,9 +136,22 @@ Current movement settings:
 
 ```json
 {
+  "audio": {
+    "bgmVolume": 0.18,
+    "clearVolume": 0.9,
+    "coinPickupVolume": 0.76,
+    "tapVolume": 0.34,
+    "volumeStep": 0.1
+  },
   "movement": {
     "maxTargetCornerTurns": 2,
     "directionalFallbackEnabled": true
+  },
+  "jumpScare": {
+    "chancePerTap": 0.035,
+    "cooldownMs": 18000,
+    "durationMs": 650,
+    "enabled": true
   }
 }
 ```
@@ -140,6 +163,7 @@ Current movement settings:
 - Runtime orchestration belongs in `useMazeDaemonsGame`.
 - Persistence belongs in `useProgressState`.
 - Shop behavior belongs in `useShopActions`.
+- Audio playback belongs in `useMazeSounds`.
 - Progression rules belong in `utils/progression`.
 - Pure maze domain behavior belongs in `src/game`.
 

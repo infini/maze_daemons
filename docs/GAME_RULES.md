@@ -49,7 +49,7 @@ Progression rules:
 - A stage unlocks only after the previous stage in the same difficulty is cleared.
 - A difficulty unlocks only after all 50 stages in the previous difficulty are cleared.
 - The stage button can be used to return to the current stage or already-cleared stages.
-- Reaching the exit shows a short `CLEAR` effect and automatically advances to the next unlocked stage.
+- Reaching the exit shows a short ender dragon `CLEAR` effect and automatically advances to the next unlocked stage.
 - If the final stage has no next stage, the clear state remains on the completed stage.
 
 ## Stage Reset And Start Position
@@ -79,13 +79,31 @@ Persistence:
 - Collected coin keys use `levelId:coinId`.
 - When a newly visible coin is collected, a short blocky pink pig `YUMMY!` effect appears near the coin cell.
 - Progress storage key includes `stage-catalog.json` version through `maze-daemons:progress:v{version}`.
+- When the catalog version increases, compatible previous progress is migrated into the newest storage key on launch.
 - If level generation changes coin positions while keeping the same stage and coin IDs, bump the catalog version.
 
 ## Last Played Stage
 
 - The active stage is stored as `lastPlayedStageId` whenever the player enters a stage.
 - On app launch, the saved stage is restored after progress data loads.
+- If the saved stage came from an older catalog version and still exists in the current catalog, it is restored after migration.
 - If the saved stage is no longer valid or is locked by current progress, the app falls back to the default first stage.
+
+## Audio
+
+- BGM uses a quiet original dark ambient loop.
+- Maze board taps play a short touch sound.
+- Newly collected coins play a short full-belly burp sound with the pink pig `YUMMY!` effect.
+- Stage clear plays a heavy eerie clear sound with the ender dragon `CLEAR` effect.
+- Settings store separate volume controls for BGM, touch, coin, and clear channels.
+- Each audio channel can be previewed directly from settings without playing a stage.
+
+## Jump Scare
+
+- Maze board taps have a low configured chance to trigger a short full-screen block ghost.
+- The jump scare is family-safe: no gore, blood, wounds, or graphic imagery.
+- The default cooldown prevents the effect from appearing repeatedly in a short time.
+- Chance, cooldown, duration, and enablement are configured in `jumpScare`.
 
 ## Shop
 
@@ -139,5 +157,6 @@ Generation guarantees:
 
 - Every stage has start, exit, and at least one coin.
 - The exit is reachable from the start.
+- The exit must be at least `floor((width + height) * 0.9)` path cells away from the start.
 - Every coin is reachable from the start without passing through the exit.
 - There are exactly 50 stages per difficulty.

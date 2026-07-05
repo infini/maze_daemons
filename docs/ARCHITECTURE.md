@@ -16,17 +16,26 @@ Keep screen-level files focused on composition. New game rules should not be add
 - `src/features/maze-game/components/MazeBoard.tsx`
   - Renders the rectangular maze board.
   - Converts touch coordinates into row/column positions.
-  - Displays walls, floor, coins, exit, trail overlays, and the player token.
+  - Displays walls, floor, coins, exit, decorative overlays, trail overlays, and the player token.
+- `src/features/maze-game/components/MazeAtmosphere.tsx`
+  - Renders grave, spider web, fog, and vignette visuals on top of the board without changing touch behavior.
 - `src/features/maze-game/components/Trail.tsx`
   - Renders purchased movement trail segments.
   - Does not render a center dot.
 - `src/features/maze-game/components/CoinPickupEffect.tsx`
   - Renders the short blocky pink pig `YUMMY!` effect when a newly visible coin is collected.
 - `src/features/maze-game/components/ClearEffect.tsx`
-  - Renders the short `CLEAR` overlay before automatic stage advance.
+  - Renders the short `CLEAR` overlay with the ender dragon before automatic stage advance.
+- `src/features/maze-game/components/JumpScareOverlay.tsx`
+  - Renders the family-safe full-screen block ghost scare overlay.
 - `src/features/maze-game/hooks/useAnimatedToken.ts`
   - Animates the player token along the latest movement path.
   - Reads animation timings from `src/data/game-settings.json`.
+- `src/features/maze-game/hooks/useJumpScare.ts`
+  - Applies configured chance, cooldown, and duration for random scare events.
+- `src/features/maze-game/hooks/useMazeSounds.ts`
+  - Owns BGM playback and short sound effects through `expo-audio`.
+  - Applies saved BGM, tap, coin, clear, and jump scare volume settings.
 
 ### HUD
 
@@ -39,6 +48,9 @@ Keep screen-level files focused on composition. New game rules should not be add
   - Difficulty selector and stage picker.
 - `src/features/maze-game/components/hud/ShopPanel.tsx`
   - Shop UI for trail effects and skins.
+- `src/features/maze-game/components/hud/SettingsPanel.tsx`
+  - Per-channel audio volume controls for BGM, touch, coin, and clear sounds.
+  - Provides per-channel preview buttons so settings can verify sounds without gameplay events.
 
 When adding new HUD controls, prefer creating or extending a HUD subcomponent instead of growing `GameHud.tsx`.
 
@@ -50,7 +62,9 @@ When adding new HUD controls, prefer creating or extending a HUD subcomponent in
 - `src/features/maze-game/hooks/useProgressState.ts`
   - Loads, normalizes, and persists progress through AsyncStorage.
   - Storage key includes the generated stage catalog version.
+  - Migrates compatible progress from older catalog storage keys into the current catalog key.
   - Persists the last played stage ID.
+  - Persists per-channel audio volume settings.
 - `src/features/maze-game/hooks/useShopActions.ts`
   - Contains shop purchase/equip behavior and shop messages.
 
@@ -58,6 +72,8 @@ When adding new HUD controls, prefer creating or extending a HUD subcomponent in
 
 - `src/features/maze-game/utils/layout.ts`
   - Board and panel sizing.
+- `src/features/maze-game/utils/mazeDecorations.ts`
+  - Selects deterministic grave and spider web decoration positions for each prepared level.
 - `src/features/maze-game/utils/progression.ts`
   - Difficulty unlocks, stage unlocks, selectable stage list, and next-stage location.
 - `src/features/maze-game/utils/statusText.ts`
@@ -84,6 +100,8 @@ When adding new HUD controls, prefer creating or extending a HUD subcomponent in
   - Grid helpers such as directions, adjacency, position keys, and walkability.
 - `src/game/types.ts`
   - Shared domain types.
+- `src/game/sounds.ts`
+  - Static sound asset registry.
 
 ## Data Modules
 
@@ -97,11 +115,21 @@ When adding new HUD controls, prefer creating or extending a HUD subcomponent in
   - Stage catalog export.
 - `src/data/levels/stage-catalog.json`
   - Generated stage catalog.
+- `assets/sounds/*.wav`
+  - Generated local original audio assets.
+- `assets/tiles/*.png`
+  - Generated tile, coin, exit, grave, and spider web image assets.
+- `assets/effects/*.png`
+  - Generated visual effect assets such as the block ghost jump scare.
+- `scripts/generate-assets.mjs`
+  - Generates local PNG assets for tiles, characters, and app icons.
+- `scripts/generate-sounds.mjs`
+  - Generates the BGM loop and short sound effects.
 
 ## Extension Guidelines
 
 - Add new game rules to `src/game/*` or `src/features/maze-game/utils/*`, not directly inside UI components.
 - Add new shop categories in `src/data/shop.ts`, `useShopActions.ts`, and `ShopPanel.tsx`.
 - Add new settings to `src/data/game-settings.json` and update `src/data/settings.ts` at the same time.
-- If generated level semantics change, update `scripts/generate-levels.mjs`, regenerate the catalog, and consider bumping the catalog version.
+- If generated level semantics change, update `scripts/generate-levels.mjs`, regenerate the catalog, and consider bumping the catalog version. Compatible progress is migrated by stage ID, but incompatible coin IDs should use a new catalog version.
 - Keep `GameHud.tsx` and `useMazeDaemonsGame.ts` as orchestration files; split new responsibilities before they grow large.

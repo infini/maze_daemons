@@ -11,8 +11,12 @@ The game focuses on high difficulty maze stages, touch-based movement, collectib
 - 50 generated stages per difficulty.
 - Stage progression is locked in order. Stage 2 opens after clearing stage 1, and the next difficulty opens after all 50 stages in the previous difficulty are cleared.
 - Maze movement is driven by tapping the maze board. Directional arrow controls are intentionally not used.
+- The maze board uses a darker graveyard style with graves, spider webs, fog, and a soft vignette.
 - Coins are placed only on cells reachable before entering the exit.
+- Maze taps can rarely trigger a family-safe full-screen block ghost jump scare with a short sound.
 - Shop purchases are sequential within each product category.
+- BGM, touch, coin, and clear audio channels have separate settings and in-settings previews.
+- Progress from compatible older stage catalog versions is migrated automatically after app updates.
 
 ## Documentation
 
@@ -37,6 +41,8 @@ Important fields:
 
 - `clearEffectDurationMs`: how long the `CLEAR` effect remains visible before automatic stage advance.
 - `coinPickupEffectDurationMs`: how long the coin pickup pig effect remains visible.
+- `jumpScare`: low-probability block ghost scare settings, including chance, cooldown, and duration.
+- `audio`: default BGM, tap, coin pickup, clear, and volume step values.
 - `movement.maxTargetCornerTurns`: how many turns are allowed when moving directly to a tapped target cell.
 - `movement.directionalFallbackEnabled`: whether a blocked target tap should still move the player as far as possible in the tap direction.
 - `tokenAnimation`: speed limits for fast movement animation.
@@ -52,4 +58,10 @@ Regenerate stages with:
 npm run generate:levels
 ```
 
-The stage catalog version is used as part of the progress storage key. If coin placement changes in a way that invalidates existing coin IDs, bump the catalog version in [scripts/generate-levels.mjs](scripts/generate-levels.mjs) before regenerating.
+Regenerate original local sound effects with:
+
+```bash
+npm run generate:sounds
+```
+
+The stage catalog version is used as part of the progress storage key. Compatible older progress is migrated into the newest key on launch. If coin placement changes in a way that invalidates existing coin IDs, bump the catalog version in [scripts/generate-levels.mjs](scripts/generate-levels.mjs) before regenerating.

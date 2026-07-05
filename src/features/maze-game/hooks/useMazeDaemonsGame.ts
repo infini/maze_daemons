@@ -25,7 +25,7 @@ import {
   isDifficultyUnlocked,
   isStageUnlocked,
 } from '../utils/progression';
-import type { CoinPickupEffect } from '../types';
+import type { AudioVolumeKey, CoinPickupEffect } from '../types';
 import { getStatusText } from '../utils/statusText';
 import { useProgressState } from './useProgressState';
 import { useShopActions } from './useShopActions';
@@ -40,7 +40,9 @@ export function useMazeDaemonsGame() {
   const coinEffectTimeoutRefs = useRef<Array<ReturnType<typeof setTimeout>>>([]);
   const lastPlayedRestoredRef = useRef(false);
   const [clearEffectVisible, setClearEffectVisible] = useState(false);
+  const [clearSoundKey, setClearSoundKey] = useState(0);
   const [coinPickupEffects, setCoinPickupEffects] = useState<CoinPickupEffect[]>([]);
+  const [coinPickupSoundKey, setCoinPickupSoundKey] = useState(0);
   const { progress, progressLoaded, setProgress } = useProgressState();
   const [shopMessage, setShopMessage] = useState('');
   const shopActions = useShopActions({ setProgress, setShopMessage });
@@ -162,6 +164,7 @@ export function useMazeDaemonsGame() {
         return;
       }
 
+      setCoinPickupSoundKey((current) => current + 1);
       const effectIds = new Set(effects.map((effect) => effect.id));
       setCoinPickupEffects((current) => [...current, ...effects]);
       const timeout = setTimeout(() => {
@@ -235,6 +238,7 @@ export function useMazeDaemonsGame() {
     (nextLocation: { difficultyIndex: number; stageIndex: number } | null) => {
       clearPendingClearEffect();
       setClearEffectVisible(true);
+      setClearSoundKey((current) => current + 1);
       clearEffectTimeoutRef.current = setTimeout(() => {
         clearEffectTimeoutRef.current = null;
         setClearEffectVisible(false);
@@ -414,11 +418,26 @@ export function useMazeDaemonsGame() {
     [activateStage, effectiveCompletedStageIds],
   );
 
+  const setAudioVolume = useCallback(
+    (key: AudioVolumeKey, value: number) => {
+      setProgress((current) => ({
+        ...current,
+        audioSettings: {
+          ...current.audioSettings,
+          [key]: clampVolume(value),
+        },
+      }));
+    },
+    [setProgress],
+  );
+
   return {
     animationResetKey,
     canAdvanceAfterWin,
     clearEffectVisible,
+    clearSoundKey,
     coinPickupEffects,
+    coinPickupSoundKey,
     coinCountInLevel: Object.keys(level.coins).length,
     collectedCoinCountInLevel: hiddenCoinIds.size,
     difficulties,
@@ -438,6 +457,7 @@ export function useMazeDaemonsGame() {
     onPurchaseTrailEffect: shopActions.purchaseTrailEffect,
     onReset: resetCurrentRun,
     onSelectDifficulty: selectDifficulty,
+    onSetAudioVolume: setAudioVolume,
     onStartPress: startRun,
     progress,
     progressLoaded,
@@ -499,4 +519,11 @@ function getStageId(requestedDifficultyIndex: number, requestedStageIndex: numbe
 
 function unique<T>(items: T[]) {
   return Array.from(new Set(items));
+}
+
+function clampVolume(value: number) {
+  if (!Number.isFinite(value)) {
+    return 0;
+  }
+  return Math.max(0, Math.min(1, Math.round(value * 100) / 100));
 }

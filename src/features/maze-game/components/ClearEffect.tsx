@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
-import { Animated, StyleSheet, Text, View } from 'react-native';
+import { Animated, Image, StyleSheet, Text, View } from 'react-native';
 import { settings } from '../../../data/settings';
+import { playerImages } from '../../../game/assets';
 
 export function ClearEffect() {
   const opacity = useRef(new Animated.Value(0)).current;
@@ -41,8 +42,11 @@ export function ClearEffect() {
 
   return (
     <View pointerEvents="none" style={styles.overlay}>
-      <Animated.View style={[styles.badge, { opacity, transform: [{ scale }] }]}>
-        <Text style={styles.text}>CLEAR</Text>
+      <Animated.View style={[styles.clearGroup, { opacity, transform: [{ scale }] }]}>
+        <Image source={playerImages['ender-dragon']} style={styles.dragon} resizeMode="contain" />
+        <View style={styles.badge}>
+          <Text style={styles.text}>CLEAR</Text>
+        </View>
       </Animated.View>
     </View>
   );
@@ -58,6 +62,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(7, 11, 24, 0.18)',
+  },
+  clearGroup: {
+    minWidth: 220,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dragon: {
+    width: 160,
+    height: 96,
+    marginBottom: -12,
   },
   badge: {
     minWidth: 220,

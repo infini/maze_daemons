@@ -4,7 +4,13 @@ export const tileImages = {
   coin: require('../../assets/tiles/coin.png'),
   exit: require('../../assets/tiles/exit.png'),
   floor: require('../../assets/tiles/floor.png'),
+  grave: require('../../assets/tiles/grave.png'),
+  spiderWeb: require('../../assets/tiles/spider-web.png'),
   wall: require('../../assets/tiles/wall.png'),
+};
+
+export const effectImages = {
+  ghostFace: require('../../assets/effects/ghost-face.png'),
 };
 
 export const playerImages: Record<PlayerSkinId, number> = {
