@@ -9,7 +9,9 @@ import type {
   TrailMap,
 } from '../../../game/types';
 import { ClearEffect } from './ClearEffect';
+import { CoinPickupEffect } from './CoinPickupEffect';
 import { Trail } from './Trail';
+import type { CoinPickupEffect as CoinPickupEffectData } from '../types';
 
 export function MazeBoard({
   animatedTokenPosition,
@@ -18,6 +20,7 @@ export function MazeBoard({
   cellHeight,
   cellWidth,
   clearEffectVisible,
+  coinPickupEffects,
   gameState,
   hiddenCoinIds,
   isPaused,
@@ -34,6 +37,7 @@ export function MazeBoard({
   cellHeight: number;
   cellWidth: number;
   clearEffectVisible: boolean;
+  coinPickupEffects: CoinPickupEffectData[];
   gameState: GameState;
   hiddenCoinIds: Set<string>;
   isPaused: boolean;
@@ -111,6 +115,17 @@ export function MazeBoard({
       >
         <Image source={playerImages[selectedSkinId]} style={styles.tokenImage} resizeMode="contain" />
       </Animated.View>
+
+      {coinPickupEffects.map((effect) => (
+        <CoinPickupEffect
+          key={effect.id}
+          boardHeight={boardHeight}
+          boardWidth={boardWidth}
+          cellHeight={cellHeight}
+          cellWidth={cellWidth}
+          effect={effect}
+        />
+      ))}
 
       {clearEffectVisible ? <ClearEffect /> : null}
 

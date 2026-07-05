@@ -120,6 +120,7 @@ export type ProgressState = {
   coins: number;
   collectedCoinKeys: string[];
   completedStageKeys: string[];
+  lastPlayedStageId: string | null;
   purchasedTrailEffectIds: TrailEffectId[];
   selectedTrailEffectId: TrailEffectId | null;
   purchasedSkinIds: ShopSkinId[];

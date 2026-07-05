@@ -2,6 +2,7 @@ import gameSettings from './game-settings.json';
 
 type GameSettings = {
   clearEffectDurationMs: number;
+  coinPickupEffectDurationMs: number;
   movement: {
     directionalFallbackEnabled: boolean;
     maxTargetCornerTurns: number;

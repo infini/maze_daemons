@@ -18,12 +18,14 @@ import {
 } from '../utils/timer';
 import {
   canAdvanceAfterWin as canAdvanceAfterWinForProgress,
+  findStageLocationById,
   getNextStageLocation,
   getSelectableStageIndexes,
   getUnlockedDifficultyIds,
   isDifficultyUnlocked,
   isStageUnlocked,
 } from '../utils/progression';
+import type { CoinPickupEffect } from '../types';
 import { getStatusText } from '../utils/statusText';
 import { useProgressState } from './useProgressState';
 import { useShopActions } from './useShopActions';
@@ -35,7 +37,10 @@ export function useMazeDaemonsGame() {
   const [now, setNow] = useState(() => Date.now());
   const [timerState, setTimerState] = useState(() => createTimerState());
   const clearEffectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const coinEffectTimeoutRefs = useRef<Array<ReturnType<typeof setTimeout>>>([]);
+  const lastPlayedRestoredRef = useRef(false);
   const [clearEffectVisible, setClearEffectVisible] = useState(false);
+  const [coinPickupEffects, setCoinPickupEffects] = useState<CoinPickupEffect[]>([]);
   const { progress, progressLoaded, setProgress } = useProgressState();
   const [shopMessage, setShopMessage] = useState('');
   const shopActions = useShopActions({ setProgress, setShopMessage });
@@ -117,6 +122,7 @@ export function useMazeDaemonsGame() {
       if (clearEffectTimeoutRef.current) {
         clearTimeout(clearEffectTimeoutRef.current);
       }
+      coinEffectTimeoutRefs.current.forEach((timeout) => clearTimeout(timeout));
     },
     [],
   );
@@ -129,8 +135,49 @@ export function useMazeDaemonsGame() {
     setClearEffectVisible(false);
   }, []);
 
+  const clearCoinPickupEffects = useCallback(() => {
+    coinEffectTimeoutRefs.current.forEach((timeout) => clearTimeout(timeout));
+    coinEffectTimeoutRefs.current = [];
+    setCoinPickupEffects([]);
+  }, []);
+
+  const showCoinPickupEffects = useCallback(
+    (coinIds: string[]) => {
+      const timestamp = Date.now();
+      const effects = coinIds.flatMap((coinId, index) => {
+        const position = level.coins[coinId];
+        if (!position) {
+          return [];
+        }
+
+        return [
+          {
+            id: `${level.id}:${coinId}:${timestamp}:${index}`,
+            position,
+          },
+        ];
+      });
+
+      if (effects.length === 0) {
+        return;
+      }
+
+      const effectIds = new Set(effects.map((effect) => effect.id));
+      setCoinPickupEffects((current) => [...current, ...effects]);
+      const timeout = setTimeout(() => {
+        setCoinPickupEffects((current) => current.filter((effect) => !effectIds.has(effect.id)));
+        coinEffectTimeoutRefs.current = coinEffectTimeoutRefs.current.filter(
+          (storedTimeout) => storedTimeout !== timeout,
+        );
+      }, settings.coinPickupEffectDurationMs);
+      coinEffectTimeoutRefs.current.push(timeout);
+    },
+    [level.coins, level.id],
+  );
+
   const resetCurrentRun = useCallback(() => {
     clearPendingClearEffect();
+    clearCoinPickupEffects();
     setNow(Date.now());
     setTimerState(createTimerState());
     setRun((current) => ({
@@ -138,19 +185,51 @@ export function useMazeDaemonsGame() {
       animationResetKey: current.animationResetKey + 1,
       gameState: createInitialState(current.level),
     }));
-  }, [clearPendingClearEffect]);
+  }, [clearCoinPickupEffects, clearPendingClearEffect]);
 
   const activateStage = useCallback(
     (nextDifficultyIndex: number, nextStageIndex: number) => {
       clearPendingClearEffect();
+      clearCoinPickupEffects();
+      const nextStageId = getStageId(nextDifficultyIndex, nextStageIndex);
       setRun((current) =>
         createStageRun(nextDifficultyIndex, nextStageIndex, current.animationResetKey + 1),
       );
       setNow(Date.now());
       setTimerState(createTimerState());
+      setProgress((current) =>
+        current.lastPlayedStageId === nextStageId
+          ? current
+          : { ...current, lastPlayedStageId: nextStageId },
+      );
     },
-    [clearPendingClearEffect],
+    [clearCoinPickupEffects, clearPendingClearEffect, setProgress],
   );
+
+  useEffect(() => {
+    if (!progressLoaded || lastPlayedRestoredRef.current) {
+      return;
+    }
+
+    lastPlayedRestoredRef.current = true;
+    const lastPlayedLocation = findStageLocationById(progress.lastPlayedStageId);
+    if (!lastPlayedLocation) {
+      return;
+    }
+
+    const completedStageIdsForRestore = new Set(progress.completedStageKeys);
+    if (
+      !isStageUnlocked(
+        lastPlayedLocation.difficultyIndex,
+        lastPlayedLocation.stageIndex,
+        completedStageIdsForRestore,
+      )
+    ) {
+      return;
+    }
+
+    activateStage(lastPlayedLocation.difficultyIndex, lastPlayedLocation.stageIndex);
+  }, [activateStage, progress.completedStageKeys, progress.lastPlayedStageId, progressLoaded]);
 
   const scheduleStageClear = useCallback(
     (nextLocation: { difficultyIndex: number; stageIndex: number } | null) => {
@@ -176,6 +255,9 @@ export function useMazeDaemonsGame() {
       const previousCoinIds = new Set(gameState.collectedCoinIds);
       const newlyCollectedCoinIds = nextGameState.collectedCoinIds.filter(
         (coinId) => !previousCoinIds.has(coinId),
+      );
+      const newlyVisibleCoinIds = newlyCollectedCoinIds.filter(
+        (coinId) => !persistedCoinIds.has(coinId),
       );
       const completedStageKey = nextGameState.isWon ? level.id : null;
       const nextCompletedStageIds = new Set(completedStageIds);
@@ -212,6 +294,8 @@ export function useMazeDaemonsGame() {
         }));
       }
 
+      showCoinPickupEffects(newlyVisibleCoinIds);
+
       if (!gameState.isWon && nextGameState.isWon) {
         setTimerState((current) => finishTimer(current, timestamp));
         const nextLocation = getNextStageLocation({
@@ -229,7 +313,9 @@ export function useMazeDaemonsGame() {
       difficultyIndex,
       gameState,
       level.id,
+      persistedCoinIds,
       scheduleStageClear,
+      showCoinPickupEffects,
       stageIndex,
     ],
   );
@@ -332,6 +418,7 @@ export function useMazeDaemonsGame() {
     animationResetKey,
     canAdvanceAfterWin,
     clearEffectVisible,
+    coinPickupEffects,
     coinCountInLevel: Object.keys(level.coins).length,
     collectedCoinCountInLevel: hiddenCoinIds.size,
     difficulties,
@@ -395,6 +482,19 @@ function createStageRun(
     level,
     stageIndex,
   };
+}
+
+function getStageId(requestedDifficultyIndex: number, requestedStageIndex: number) {
+  const difficultyIndex =
+    requestedDifficultyIndex >= 0 && requestedDifficultyIndex < difficulties.length
+      ? requestedDifficultyIndex
+      : 0;
+  const difficulty = difficulties[difficultyIndex] ?? difficulties[0];
+  const stageIndex =
+    requestedStageIndex >= 0 && requestedStageIndex < difficulty.stages.length
+      ? requestedStageIndex
+      : 0;
+  return (difficulty.stages[stageIndex] ?? difficulty.stages[0]).id;
 }
 
 function unique<T>(items: T[]) {

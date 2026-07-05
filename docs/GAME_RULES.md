@@ -77,8 +77,15 @@ Rules:
 Persistence:
 
 - Collected coin keys use `levelId:coinId`.
+- When a newly visible coin is collected, a short blocky pink pig `YUMMY!` effect appears near the coin cell.
 - Progress storage key includes `stage-catalog.json` version through `maze-daemons:progress:v{version}`.
 - If level generation changes coin positions while keeping the same stage and coin IDs, bump the catalog version.
+
+## Last Played Stage
+
+- The active stage is stored as `lastPlayedStageId` whenever the player enters a stage.
+- On app launch, the saved stage is restored after progress data loads.
+- If the saved stage is no longer valid or is locked by current progress, the app falls back to the default first stage.
 
 ## Shop
 

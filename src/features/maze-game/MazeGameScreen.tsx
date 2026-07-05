@@ -53,6 +53,7 @@ export function MazeGameScreen() {
           cellHeight={cellHeight}
           cellWidth={cellWidth}
           clearEffectVisible={game.clearEffectVisible}
+          coinPickupEffects={game.coinPickupEffects}
           gameState={game.gameState}
           hiddenCoinIds={game.hiddenCoinIds}
           isPaused={game.isPaused}

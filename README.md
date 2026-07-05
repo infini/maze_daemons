@@ -36,6 +36,7 @@ Gameplay constants live in [src/data/game-settings.json](src/data/game-settings.
 Important fields:
 
 - `clearEffectDurationMs`: how long the `CLEAR` effect remains visible before automatic stage advance.
+- `coinPickupEffectDurationMs`: how long the coin pickup pig effect remains visible.
 - `movement.maxTargetCornerTurns`: how many turns are allowed when moving directly to a tapped target cell.
 - `movement.directionalFallbackEnabled`: whether a blocked target tap should still move the player as far as possible in the tap direction.
 - `tokenAnimation`: speed limits for fast movement animation.

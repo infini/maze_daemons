@@ -97,11 +97,13 @@ After installing on the tablet:
 
 1. Confirm the app opens without crash.
 2. Confirm coins are visible on a fresh catalog version.
-3. Tap a reachable path cell and confirm movement occurs.
-4. Tap a cell that requires up to two turns and confirm direct movement.
-5. Clear a stage and press `다음`; the next stage must start at its own start cell.
-6. Use the stage button to return to a cleared stage; it must also start at that stage's start cell.
-7. Open the shop and confirm products still render horizontally.
+3. Collect a visible coin and confirm the pink pig `YUMMY!` effect appears briefly.
+4. Tap a reachable path cell and confirm movement occurs.
+5. Tap a cell that requires up to two turns and confirm direct movement.
+6. Clear a stage and confirm `CLEAR` appears, then the next stage starts at its own start cell.
+7. Relaunch the app and confirm it restores the last played stage.
+8. Use the stage button to return to a cleared stage; it must also start at that stage's start cell.
+9. Open the shop and confirm products still render horizontally.
 
 Useful log command:
 

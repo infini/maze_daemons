@@ -77,6 +77,22 @@ export function getNextStageLocation({
   return null;
 }
 
+export function findStageLocationById(stageId: string | null) {
+  if (!stageId) {
+    return null;
+  }
+
+  for (let difficultyIndex = 0; difficultyIndex < difficulties.length; difficultyIndex += 1) {
+    const difficulty = difficulties[difficultyIndex];
+    const stageIndex = difficulty.stages.findIndex((stage) => stage.id === stageId);
+    if (stageIndex >= 0) {
+      return { difficultyIndex, stageIndex };
+    }
+  }
+
+  return null;
+}
+
 export function isDifficultyUnlocked(difficultyIndex: number, completedStageIds: Set<string>) {
   if (difficultyIndex <= 0) {
     return true;

@@ -1,10 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useState } from 'react';
-import { catalog } from '../../../data/levels';
+import { catalog, levels } from '../../../data/levels';
 import { defaultProgress, skinItems, trailEffectItems } from '../../../data/shop';
 import type { PlayerSkinId, ProgressState, ShopSkinId, TrailEffectId } from '../../../game/types';
 
 const progressStorageKey = `maze-daemons:progress:v${catalog.version}`;
+const validStageIds = new Set(levels.map((level) => level.id));
 
 export function useProgressState() {
   const [progressLoaded, setProgressLoaded] = useState(false);
@@ -63,6 +64,10 @@ function normalizeProgress(stored: string | null): ProgressState {
       rawSelectedSkinId === 'zombie' || purchasedSkinIds.includes(rawSelectedSkinId as ShopSkinId)
         ? (rawSelectedSkinId as PlayerSkinId)
         : defaultProgress.selectedSkinId;
+    const lastPlayedStageId =
+      typeof parsed.lastPlayedStageId === 'string' && validStageIds.has(parsed.lastPlayedStageId)
+        ? parsed.lastPlayedStageId
+        : null;
 
     return {
       coins: typeof parsed.coins === 'number' && Number.isFinite(parsed.coins) ? parsed.coins : 0,
@@ -72,6 +77,7 @@ function normalizeProgress(stored: string | null): ProgressState {
       completedStageKeys: Array.isArray(parsed.completedStageKeys)
         ? unique(parsed.completedStageKeys.filter((key): key is string => typeof key === 'string'))
         : [],
+      lastPlayedStageId,
       purchasedTrailEffectIds,
       selectedTrailEffectId,
       purchasedSkinIds,

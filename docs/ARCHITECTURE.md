@@ -20,6 +20,10 @@ Keep screen-level files focused on composition. New game rules should not be add
 - `src/features/maze-game/components/Trail.tsx`
   - Renders purchased movement trail segments.
   - Does not render a center dot.
+- `src/features/maze-game/components/CoinPickupEffect.tsx`
+  - Renders the short blocky pink pig `YUMMY!` effect when a newly visible coin is collected.
+- `src/features/maze-game/components/ClearEffect.tsx`
+  - Renders the short `CLEAR` overlay before automatic stage advance.
 - `src/features/maze-game/hooks/useAnimatedToken.ts`
   - Animates the player token along the latest movement path.
   - Reads animation timings from `src/data/game-settings.json`.
@@ -46,6 +50,7 @@ When adding new HUD controls, prefer creating or extending a HUD subcomponent in
 - `src/features/maze-game/hooks/useProgressState.ts`
   - Loads, normalizes, and persists progress through AsyncStorage.
   - Storage key includes the generated stage catalog version.
+  - Persists the last played stage ID.
 - `src/features/maze-game/hooks/useShopActions.ts`
   - Contains shop purchase/equip behavior and shop messages.
 

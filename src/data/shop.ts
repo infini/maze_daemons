@@ -6,6 +6,7 @@ export const defaultProgress: ProgressState = {
   coins: 0,
   collectedCoinKeys: [],
   completedStageKeys: [],
+  lastPlayedStageId: null,
   purchasedTrailEffectIds: [],
   selectedTrailEffectId: null,
   purchasedSkinIds: [],
