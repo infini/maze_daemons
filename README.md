@@ -13,7 +13,6 @@ The game focuses on high difficulty maze stages, touch-based movement, collectib
 - Maze movement is driven by tapping the maze board. Directional arrow controls are intentionally not used.
 - The maze board uses a darker graveyard style with graves, spider webs, fog, and a soft vignette.
 - Coins are placed only on cells reachable before entering the exit.
-- Maze taps can rarely trigger a family-safe full-screen block ghost jump scare with a short sound.
 - Shop purchases are sequential within each product category.
 - BGM, touch, coin, and clear audio channels have separate settings and in-settings previews.
 - Progress from compatible older stage catalog versions is migrated automatically after app updates.
@@ -41,7 +40,6 @@ Important fields:
 
 - `clearEffectDurationMs`: how long the `CLEAR` effect remains visible before automatic stage advance.
 - `coinPickupEffectDurationMs`: how long the coin pickup pig effect remains visible.
-- `jumpScare`: low-probability block ghost scare settings, including chance, cooldown, and duration.
 - `audio`: default BGM, tap, coin pickup, clear, and volume step values.
 - `movement.maxTargetCornerTurns`: how many turns are allowed when moving directly to a tapped target cell.
 - `movement.directionalFallbackEnabled`: whether a blocked target tap should still move the player as far as possible in the tap direction.

@@ -16,7 +16,6 @@ export function useMazeSounds(audioSettings: AudioSettings) {
   const tapPlayer = useAudioPlayer(soundAssets.tap, playerOptions);
   const coinPickupPlayer = useAudioPlayer(soundAssets.coinPickup, playerOptions);
   const clearPlayer = useAudioPlayer(soundAssets.clear, playerOptions);
-  const jumpScarePlayer = useAudioPlayer(soundAssets.jumpScare, playerOptions);
 
   useEffect(() => {
     setAudioModeAsync({
@@ -39,8 +38,7 @@ export function useMazeSounds(audioSettings: AudioSettings) {
     tapPlayer.volume = audioSettings.tapVolume;
     coinPickupPlayer.volume = audioSettings.coinPickupVolume;
     clearPlayer.volume = audioSettings.clearVolume;
-    jumpScarePlayer.volume = audioSettings.clearVolume * 0.82;
-  }, [audioSettings, bgmPlayer, clearPlayer, coinPickupPlayer, jumpScarePlayer, tapPlayer]);
+  }, [audioSettings, bgmPlayer, clearPlayer, coinPickupPlayer, tapPlayer]);
 
   const playTap = useCallback(() => {
     replay(tapPlayer);
@@ -53,10 +51,6 @@ export function useMazeSounds(audioSettings: AudioSettings) {
   const playClear = useCallback(() => {
     replay(clearPlayer);
   }, [clearPlayer]);
-
-  const playJumpScare = useCallback(() => {
-    replay(jumpScarePlayer);
-  }, [jumpScarePlayer]);
 
   const previewSound = useCallback(
     (key: AudioVolumeKey) => {
@@ -72,7 +66,7 @@ export function useMazeSounds(audioSettings: AudioSettings) {
     [bgmPlayer, clearPlayer, coinPickupPlayer, tapPlayer],
   );
 
-  return { playClear, playCoinPickup, playJumpScare, playTap, previewSound };
+  return { playClear, playCoinPickup, playTap, previewSound };
 }
 
 function replay(player: AudioPlayer) {

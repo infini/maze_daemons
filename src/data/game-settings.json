@@ -8,12 +8,6 @@
   },
   "clearEffectDurationMs": 1000,
   "coinPickupEffectDurationMs": 720,
-  "jumpScare": {
-    "chancePerTap": 0.035,
-    "cooldownMs": 18000,
-    "durationMs": 650,
-    "enabled": true
-  },
   "trailVisibleSeconds": 5,
   "movement": {
     "maxTargetCornerTurns": 2,

@@ -98,13 +98,6 @@ Persistence:
 - Settings store separate volume controls for BGM, touch, coin, and clear channels.
 - Each audio channel can be previewed directly from settings without playing a stage.
 
-## Jump Scare
-
-- Maze board taps have a low configured chance to trigger a short full-screen block ghost.
-- The jump scare is family-safe: no gore, blood, wounds, or graphic imagery.
-- The default cooldown prevents the effect from appearing repeatedly in a short time.
-- Chance, cooldown, duration, and enablement are configured in `jumpScare`.
-
 ## Shop
 
 Trail effects:

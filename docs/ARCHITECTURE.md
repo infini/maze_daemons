@@ -26,16 +26,12 @@ Keep screen-level files focused on composition. New game rules should not be add
   - Renders the short blocky pink pig `YUMMY!` effect when a newly visible coin is collected.
 - `src/features/maze-game/components/ClearEffect.tsx`
   - Renders the short `CLEAR` overlay with the ender dragon before automatic stage advance.
-- `src/features/maze-game/components/JumpScareOverlay.tsx`
-  - Renders the family-safe full-screen block ghost scare overlay.
 - `src/features/maze-game/hooks/useAnimatedToken.ts`
   - Animates the player token along the latest movement path.
   - Reads animation timings from `src/data/game-settings.json`.
-- `src/features/maze-game/hooks/useJumpScare.ts`
-  - Applies configured chance, cooldown, and duration for random scare events.
 - `src/features/maze-game/hooks/useMazeSounds.ts`
   - Owns BGM playback and short sound effects through `expo-audio`.
-  - Applies saved BGM, tap, coin, clear, and jump scare volume settings.
+  - Applies saved BGM, tap, coin, and clear volume settings.
 
 ### HUD
 
@@ -121,8 +117,6 @@ When adding new HUD controls, prefer creating or extending a HUD subcomponent in
   - Source recordings and license notes used by the sound generator.
 - `assets/tiles/*.png`
   - Generated tile, coin, exit, grave, and spider web image assets.
-- `assets/effects/*.png`
-  - Generated visual effect assets such as the block ghost jump scare.
 - `scripts/generate-assets.mjs`
   - Generates local PNG assets for tiles, characters, and app icons.
 - `scripts/generate-sounds.mjs`

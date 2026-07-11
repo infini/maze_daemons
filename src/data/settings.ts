@@ -10,12 +10,6 @@ type GameSettings = {
   };
   clearEffectDurationMs: number;
   coinPickupEffectDurationMs: number;
-  jumpScare: {
-    chancePerTap: number;
-    cooldownMs: number;
-    durationMs: number;
-    enabled: boolean;
-  };
   movement: {
     directionalFallbackEnabled: boolean;
     maxTargetCornerTurns: number;

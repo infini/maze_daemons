@@ -465,45 +465,6 @@ function enderDragon() {
   return image;
 }
 
-function ghostFace() {
-  const image = createImage(512, 512);
-  fill(image, color('#000000', 0));
-  fillEllipse(image, 256, 273, 188, 190, color('#020506', 116));
-  fillEllipse(image, 256, 242, 154, 164, color('#EFF6ED', 238));
-  fillEllipse(image, 214, 210, 92, 122, color('#FFFFFF', 205));
-  fillEllipse(image, 311, 224, 78, 116, color('#CAD6CE', 150));
-  fillRect(image, 115, 286, 282, 90, color('#EFF6ED', 232));
-  fillRect(image, 115, 370, 38, 58, color('#EFF6ED', 230));
-  fillRect(image, 187, 370, 42, 78, color('#EFF6ED', 228));
-  fillRect(image, 265, 370, 42, 74, color('#EFF6ED', 224));
-  fillRect(image, 352, 370, 45, 56, color('#EFF6ED', 220));
-  fillRect(image, 141, 420, 47, 23, color('#C7D4CC', 170));
-  fillRect(image, 230, 432, 36, 24, color('#C7D4CC', 160));
-  fillRect(image, 311, 424, 43, 25, color('#C7D4CC', 150));
-  fillEllipse(image, 197, 214, 40, 50, color('#111719', 230));
-  fillEllipse(image, 315, 214, 40, 50, color('#111719', 230));
-  fillEllipse(image, 184, 196, 12, 16, color('#DFFFF4', 130));
-  fillEllipse(image, 302, 196, 12, 16, color('#DFFFF4', 120));
-  fillEllipse(image, 256, 305, 58, 54, color('#111719', 230));
-  fillEllipse(image, 256, 293, 32, 25, color('#2A3838', 126));
-  fillRect(image, 153, 154, 74, 11, color('#C1CBC4', 125));
-  fillRect(image, 284, 154, 74, 11, color('#A9B6AE', 112));
-  drawLine(image, 145, 286, 114, 330, 5, color('#B4C0B8', 110));
-  drawLine(image, 368, 286, 403, 330, 5, color('#A7B4AC', 102));
-  drawLine(image, 174, 342, 206, 358, 4, color('#B8C5BD', 112));
-  drawLine(image, 338, 342, 304, 358, 4, color('#A8B5AD', 104));
-  drawLine(image, 235, 100, 222, 156, 3, color('#DDE7DF', 120));
-  drawLine(image, 337, 119, 318, 162, 3, color('#B8C6BD', 105));
-  for (let index = 0; index < 56; index += 1) {
-    const x = 132 + Math.floor(pseudoNoise(index, 3, 91) * 248);
-    const y = 102 + Math.floor(pseudoNoise(index, 7, 97) * 268);
-    const alpha = 16 + Math.floor(pseudoNoise(index, 11, 101) * 34);
-    fillCircle(image, x, y, 1 + Math.floor(pseudoNoise(index, 13, 103) * 2), color('#17201C', alpha));
-  }
-  fillEllipse(image, 256, 462, 160, 20, color('#000000', 86));
-  return image;
-}
-
 function iconBackground(size) {
   const image = createImage(size, size);
   const base = color('#08101F');
@@ -579,7 +540,6 @@ writePng(join(rootDir, 'assets/characters/enderman.png'), enderman());
 writePng(join(rootDir, 'assets/characters/iron-golem.png'), ironGolem());
 writePng(join(rootDir, 'assets/characters/warden.png'), warden());
 writePng(join(rootDir, 'assets/characters/ender-dragon.png'), enderDragon());
-writePng(join(rootDir, 'assets/effects/ghost-face.png'), ghostFace());
 writePng(join(rootDir, 'assets/icon.png'), appIcon(1024));
 writePng(join(rootDir, 'assets/favicon.png'), appIcon(256));
 writePng(join(rootDir, 'assets/splash-icon.png'), appIcon(1024, true));

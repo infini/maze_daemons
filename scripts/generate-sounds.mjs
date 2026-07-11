@@ -33,7 +33,6 @@ mkdirSync(outputDir, { recursive: true });
 writeSound('maze-tap.wav', createTapSound());
 writeSound('coin-yummy.wav', createCoinBurpSound());
 writeSound('clear-dragon.wav', createClearHauntSound());
-writeSound('jump-scare.wav', createJumpScareSound());
 writeSound('daemon-ambient-loop.wav', createDaemonAmbientLoop());
 
 function createTapSound() {
@@ -157,24 +156,6 @@ function prepareClearVoice(samples) {
       { delaySeconds: 0.104, gain: 0.04 },
     ]),
     0.72,
-  );
-}
-
-function createJumpScareSound() {
-  return finalize(
-    synthesize(0.82, (time) => {
-      const pop =
-        (sine(96, time) * 0.32 + sine(192, time) * 0.12 + filteredNoise(time, 71, 0.002) * 0.055) *
-        Math.exp(-time * 14);
-      const boo =
-        spookyVoice(time, 0.06, 0.48, 178, 138, SPOOKY_VOWELS.uh, SPOOKY_VOWELS.uh, 0.42) +
-        ghostWhisper(time, 0.03, 0.5, 0.06);
-      const sparkle =
-        mutedCoinBell(time, 0.42, 329.63, 0.2, 0.06) +
-        mutedCoinBell(time, 0.5, 246.94, 0.18, 0.05);
-      return pop + boo + sparkle;
-    }),
-    0.58,
   );
 }
 

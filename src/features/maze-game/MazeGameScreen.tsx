@@ -3,10 +3,8 @@ import { StatusBar as ExpoStatusBar } from 'expo-status-bar';
 import { ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import type { Position } from '../../game/types';
 import { GameHud } from './components/GameHud';
-import { JumpScareOverlay } from './components/JumpScareOverlay';
 import { MazeBoard } from './components/MazeBoard';
 import { useAnimatedToken } from './hooks/useAnimatedToken';
-import { useJumpScare } from './hooks/useJumpScare';
 import { useMazeDaemonsGame } from './hooks/useMazeDaemonsGame';
 import { useMazeSounds } from './hooks/useMazeSounds';
 import { getBoardMetrics } from './utils/layout';
@@ -16,8 +14,7 @@ export function MazeGameScreen() {
   const isLandscape = width > height;
   const useSideLayout = isLandscape || width >= 1000;
   const game = useMazeDaemonsGame();
-  const { playClear, playCoinPickup, playJumpScare, playTap, previewSound } = useMazeSounds(game.progress.audioSettings);
-  const { jumpScareKey, tryTrigger: tryJumpScare } = useJumpScare();
+  const { playClear, playCoinPickup, playTap, previewSound } = useMazeSounds(game.progress.audioSettings);
   const { boardHeight, boardWidth, cellHeight, cellWidth, panelWidth } = getBoardMetrics({
     height,
     isLandscape: useSideLayout,
@@ -42,11 +39,8 @@ export function MazeGameScreen() {
     (position: Position) => {
       playTap();
       game.onCellPress(position);
-      if (tryJumpScare()) {
-        playJumpScare();
-      }
     },
-    [game.onCellPress, playJumpScare, playTap, tryJumpScare],
+    [game.onCellPress, playTap],
   );
 
   useEffect(() => {
@@ -69,7 +63,6 @@ export function MazeGameScreen() {
       ) : (
         <ScrollView contentContainerStyle={styles.scrollContent}>{renderContent()}</ScrollView>
       )}
-      <JumpScareOverlay triggerKey={jumpScareKey} />
     </View>
   );
 

@@ -108,12 +108,11 @@ After installing on the tablet:
 7. Tap a cell that requires up to two turns and confirm direct movement.
 8. Collect a coin and confirm the coin sound is the short full-belly burp cue.
 9. Clear a stage and confirm the ender dragon `CLEAR` effect and heavy eerie clear sound play, then the next stage starts at its own start cell.
-10. Trigger or temporarily increase `jumpScare.chancePerTap` and confirm the full-screen block ghost appears without gore or graphic imagery.
-11. Open settings and confirm BGM, touch, coin, and clear volume controls can preview sounds and persist after relaunch.
-12. Relaunch the app and confirm it restores the last played stage.
-13. After bumping the stage catalog version, install without clearing app data and confirm the previous unlocked difficulty, stage, coins, purchases, and selected items migrate.
-14. Use the stage button to return to a cleared stage; it must also start at that stage's start cell.
-15. Open the shop and confirm products still render horizontally.
+10. Open settings and confirm BGM, touch, coin, and clear volume controls can preview sounds and persist after relaunch.
+11. Relaunch the app and confirm it restores the last played stage.
+12. After bumping the stage catalog version, install without clearing app data and confirm the previous unlocked difficulty, stage, coins, purchases, and selected items migrate.
+13. Use the stage button to return to a cleared stage; it must also start at that stage's start cell.
+14. Open the shop and confirm products still render horizontally.
 
 Useful log command:
 
@@ -146,12 +145,6 @@ Current movement settings:
   "movement": {
     "maxTargetCornerTurns": 2,
     "directionalFallbackEnabled": true
-  },
-  "jumpScare": {
-    "chancePerTap": 0.035,
-    "cooldownMs": 18000,
-    "durationMs": 650,
-    "enabled": true
   }
 }
 ```

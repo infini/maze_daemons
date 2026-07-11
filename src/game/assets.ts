@@ -9,10 +9,6 @@ export const tileImages = {
   wall: require('../../assets/tiles/wall.png'),
 };
 
-export const effectImages = {
-  ghostFace: require('../../assets/effects/ghost-face.png'),
-};
-
 export const playerImages: Record<PlayerSkinId, number> = {
   zombie: require('../../assets/characters/zombie.png'),
   creeper: require('../../assets/characters/creeper.png'),
