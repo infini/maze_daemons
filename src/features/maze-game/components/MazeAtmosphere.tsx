@@ -1,14 +1,20 @@
-import { Image, StyleSheet, View } from 'react-native';
+import { useEffect, useRef } from 'react';
+import { Animated, Image, StyleSheet, View } from 'react-native';
 import { tileImages } from '../../../game/assets';
+import type { MazeThemeId } from '../../../game/types';
 import type { CellDecoration } from '../utils/mazeDecorations';
 
-export function MazeCellDecoration({ decoration }: { decoration: CellDecoration }) {
+export function MazeCellDecoration({
+  decoration,
+}: {
+  decoration: CellDecoration;
+}) {
   return (
     <Image
-      source={decoration.type === 'grave' ? tileImages.grave : tileImages.spiderWeb}
+      source={tileImages.grave}
       style={[
         styles.cellDecoration,
-        decoration.type === 'grave' ? styles.graveDecoration : styles.webDecoration,
+        styles.graveDecoration,
         {
           opacity: decoration.opacity,
           transform: [{ rotate: decoration.rotation }, { scale: decoration.scale }],
@@ -19,14 +25,54 @@ export function MazeCellDecoration({ decoration }: { decoration: CellDecoration 
   );
 }
 
-export function MazeAtmosphere() {
+export function MazeAtmosphere({ mazeThemeId }: { mazeThemeId: MazeThemeId }) {
+  if (mazeThemeId === 'volcano') {
+    return <VolcanoAtmosphere />;
+  }
+  if (mazeThemeId === 'forest') {
+    return <ForestAtmosphere />;
+  }
+
   return (
     <View pointerEvents="none" style={styles.atmosphereLayer}>
       <View style={[styles.fogPatch, styles.fogPatchLeft]} />
       <View style={[styles.fogPatch, styles.fogPatchRight]} />
       <View style={styles.vignette} />
-      <Image source={tileImages.spiderWeb} style={[styles.cornerWeb, styles.cornerWebTopLeft]} resizeMode="contain" />
-      <Image source={tileImages.spiderWeb} style={[styles.cornerWeb, styles.cornerWebBottomRight]} resizeMode="contain" />
+    </View>
+  );
+}
+
+function VolcanoAtmosphere() {
+  const pulse = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const animation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, { duration: 1800, toValue: 1, useNativeDriver: true }),
+        Animated.timing(pulse, { duration: 1800, toValue: 0, useNativeDriver: true }),
+      ]),
+    );
+    animation.start();
+    return () => animation.stop();
+  }, [pulse]);
+
+  const heatOpacity = pulse.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.04, 0.12],
+  });
+
+  return (
+    <View pointerEvents="none" style={styles.atmosphereLayer}>
+      <Animated.View style={[styles.volcanoHeat, { opacity: heatOpacity }]} />
+      <View style={styles.volcanoVignette} />
+    </View>
+  );
+}
+
+function ForestAtmosphere() {
+  return (
+    <View pointerEvents="none" style={styles.atmosphereLayer}>
+      <View style={styles.forestVignette} />
     </View>
   );
 }
@@ -40,12 +86,6 @@ const styles = StyleSheet.create({
     bottom: '2%',
     width: '80%',
     height: '86%',
-  },
-  webDecoration: {
-    top: '-8%',
-    left: '-8%',
-    width: '108%',
-    height: '108%',
   },
   atmosphereLayer: {
     position: 'absolute',
@@ -80,19 +120,30 @@ const styles = StyleSheet.create({
     borderWidth: 16,
     borderColor: 'rgba(0, 0, 0, 0.16)',
   },
-  cornerWeb: {
+  volcanoHeat: {
     position: 'absolute',
-    width: '11%',
-    height: '16%',
-    opacity: 0.44,
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    backgroundColor: '#FF5A13',
   },
-  cornerWebTopLeft: {
-    top: '-1%',
-    left: '-1%',
+  volcanoVignette: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    borderWidth: 18,
+    borderColor: 'rgba(17, 3, 1, 0.28)',
   },
-  cornerWebBottomRight: {
-    right: '-1%',
-    bottom: '-1%',
-    transform: [{ rotate: '180deg' }],
+  forestVignette: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    borderWidth: 18,
+    borderColor: 'rgba(0, 18, 6, 0.22)',
   },
 });

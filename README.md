@@ -11,8 +11,12 @@ The game focuses on high difficulty maze stages, touch-based movement, collectib
 - 50 generated stages per difficulty.
 - Stage progression is locked in order. Stage 2 opens after clearing stage 1, and the next difficulty opens after all 50 stages in the previous difficulty are cleared.
 - Maze movement is driven by tapping the maze board. Directional arrow controls are intentionally not used.
-- The maze board uses a darker graveyard style with graves, spider webs, fog, and a soft vignette.
+- The maze board can switch between graveyard, volcano, and forest themes from settings.
+- Graveyard uses graves and fog. Volcano uses dark corridors with molten-orange walls outlined in deep red. Forest uses dark woodland corridors with medium-green walls outlined in deep green.
 - Coins are placed only on cells reachable before entering the exit.
+- Every stage has one blue coin worth five standard coins, placed in a distant dead end away from the main exit route.
+- Coins are spread across all map quadrants instead of clustering in one area.
+- Blue coin pickup uses an unmodified two-second CC0 recorded sound.
 - Shop purchases are sequential within each product category.
 - BGM, touch, coin, and clear audio channels have separate settings and in-settings previews.
 - Progress from compatible older stage catalog versions is migrated automatically after app updates.
@@ -40,11 +44,15 @@ Important fields:
 
 - `clearEffectDurationMs`: how long the `CLEAR` effect remains visible before automatic stage advance.
 - `coinPickupEffectDurationMs`: how long the coin pickup pig effect remains visible.
+- `coins`: standard/blue rewards, blue coin count per stage, and difficult blue coin placement weights.
+- `mazeTheme.defaultId`: the theme selected for new progress data.
 - `audio`: default BGM, tap, coin pickup, clear, and volume step values.
 - `movement.maxTargetCornerTurns`: how many turns are allowed when moving directly to a tapped target cell.
 - `movement.directionalFallbackEnabled`: whether a blocked target tap should still move the player as far as possible in the tap direction.
 - `tokenAnimation`: speed limits for fast movement animation.
 - `trailVisibleSeconds`: how long purchased trail effects remain visible.
+
+Theme wall colors, outline colors, and outline widths are defined in [src/data/themes.ts](src/data/themes.ts).
 
 ## Generated Data
 

@@ -1,11 +1,12 @@
-import type { CellKind, GameState, LevelData, Position, PreparedLevel } from './types';
+import { settings } from '../data/settings';
+import type { CellKind, CoinType, GameState, LevelCoin, LevelData, Position, PreparedLevel } from './types';
+import { createCoinId } from './coins';
 
 export function prepareLevel(level: LevelData): PreparedLevel {
   const width = level.rows[0]?.length ?? 0;
   let start: Position | undefined;
   let exit: Position | undefined;
-  const coins: Record<string, Position> = {};
-  let coinIndex = 0;
+  const coins: Record<string, LevelCoin> = {};
 
   const cells = level.rows.map((line, row) => {
     if (line.length !== width) {
@@ -23,6 +24,7 @@ export function prepareLevel(level: LevelData): PreparedLevel {
         col: number;
         kind: CellKind;
         coinId?: string;
+        coinType?: CoinType;
       };
 
       if (tile === 'A') {
@@ -31,11 +33,16 @@ export function prepareLevel(level: LevelData): PreparedLevel {
       if (tile === 'D') {
         exit = position;
       }
-      if (tile === 'C') {
-        const coinId = `coin-${String(coinIndex + 1).padStart(2, '0')}`;
-        coinIndex += 1;
-        coins[coinId] = position;
+      if (tile === 'C' || tile === 'B') {
+        const coinType: CoinType = tile === 'B' ? 'blue' : 'standard';
+        const coinId = createCoinId(coinType, position);
+        coins[coinId] = {
+          position,
+          reward: coinType === 'blue' ? settings.coins.blueReward : settings.coins.standardReward,
+          type: coinType,
+        };
         cell.coinId = coinId;
+        cell.coinType = coinType;
       }
 
       return cell;
@@ -78,7 +85,7 @@ function tileToCellKind(tile: string): CellKind {
   if (tile === '#') {
     return 'wall';
   }
-  if (tile === 'C') {
+  if (tile === 'C' || tile === 'B') {
     return 'coin';
   }
   if (tile === 'D') {

@@ -1,8 +1,11 @@
 import { useMemo } from 'react';
 import { Animated, Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import type { ViewStyle } from 'react-native';
+import { mazeThemeVisuals } from '../../../data/themes';
 import { playerImages, tileImages } from '../../../game/assets';
 import type {
   GameState,
+  MazeThemeId,
   PlayerSkinId,
   Position,
   PreparedLevel,
@@ -28,6 +31,7 @@ export function MazeBoard({
   hiddenCoinIds,
   isPaused,
   level,
+  mazeThemeId,
   onCellPress,
   selectedSkinId,
   selectedTrailEffectId,
@@ -45,13 +49,23 @@ export function MazeBoard({
   hiddenCoinIds: Set<string>;
   isPaused: boolean;
   level: PreparedLevel;
+  mazeThemeId: MazeThemeId;
   onCellPress: (position: Position) => void;
   selectedSkinId: PlayerSkinId;
   selectedTrailEffectId: TrailEffectId | null;
   tokenSize: number;
   trailMap: TrailMap;
 }) {
-  const decorationByCell = useMemo(() => buildMazeDecorations(level), [level]);
+  const decorationByCell = useMemo(
+    () => buildMazeDecorations(level, mazeThemeId),
+    [level, mazeThemeId],
+  );
+  const wallOutlineByCell = useMemo(
+    () => buildWallOutlineStyles(level, mazeThemeId),
+    [level, mazeThemeId],
+  );
+  const isVolcano = mazeThemeId === 'volcano';
+  const isForest = mazeThemeId === 'forest';
 
   return (
     <Pressable
@@ -61,7 +75,15 @@ export function MazeBoard({
         const row = clamp(Math.floor(event.nativeEvent.locationY / cellHeight), 0, level.height - 1);
         onCellPress({ row, col });
       }}
-      style={[styles.boardFrame, { width: boardWidth, height: boardHeight }]}
+      style={[
+        styles.boardFrame,
+        isVolcano
+          ? styles.volcanoBoardFrame
+          : isForest
+            ? styles.forestBoardFrame
+            : styles.graveyardBoardFrame,
+        { width: boardWidth, height: boardHeight },
+      ]}
     >
       {level.cells.map((row, rowIndex) =>
         row.map((cell) => {
@@ -76,7 +98,18 @@ export function MazeBoard({
               pointerEvents="none"
               style={[
                 styles.cell,
-                cell.kind === 'wall' ? styles.wallCell : styles.floorCell,
+                isVolcano
+                  ? cell.kind === 'wall'
+                    ? styles.volcanoWallCell
+                    : styles.volcanoFloorCell
+                  : isForest
+                    ? cell.kind === 'wall'
+                      ? styles.forestWallCell
+                      : styles.forestFloorCell
+                    : cell.kind === 'wall'
+                      ? styles.wallCell
+                      : styles.floorCell,
+                wallOutlineByCell.get(key),
                 {
                   width: cellWidth,
                   height: cellHeight,
@@ -85,7 +118,9 @@ export function MazeBoard({
                 },
               ]}
             >
-              {decoration ? <MazeCellDecoration decoration={decoration} /> : null}
+              {decoration ? (
+                <MazeCellDecoration decoration={decoration} />
+              ) : null}
               {selectedTrailEffectId && trails ? (
                 <Trail
                   col={cell.col}
@@ -98,14 +133,18 @@ export function MazeBoard({
                 <Image source={tileImages.exit} style={styles.tileOverlay} resizeMode="contain" />
               ) : null}
               {coinVisible ? (
-                <Image source={tileImages.coin} style={styles.coinOverlay} resizeMode="contain" />
+                <Image
+                  source={cell.coinType === 'blue' ? tileImages.blueCoin : tileImages.coin}
+                  style={styles.coinOverlay}
+                  resizeMode="contain"
+                />
               ) : null}
             </View>
           );
         }),
       )}
 
-      <MazeAtmosphere />
+      <MazeAtmosphere mazeThemeId={mazeThemeId} />
 
       <Animated.View
         key={`${level.id}:${gameState.moveKey}`}
@@ -152,13 +191,53 @@ function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
 }
 
+function buildWallOutlineStyles(level: PreparedLevel, mazeThemeId: MazeThemeId) {
+  const { wallOutlineColor, wallOutlineWidth } = mazeThemeVisuals[mazeThemeId];
+  const outlines = new Map<string, ViewStyle>();
+  if (!wallOutlineColor || wallOutlineWidth <= 0) {
+    return outlines;
+  }
+
+  level.cells.forEach((row) => {
+    row.forEach((cell) => {
+      if (cell.kind !== 'wall') {
+        return;
+      }
+
+      outlines.set(`${cell.row}:${cell.col}`, {
+        borderTopWidth: isWall(level, cell.row - 1, cell.col) ? 0 : wallOutlineWidth,
+        borderRightWidth: isWall(level, cell.row, cell.col + 1) ? 0 : wallOutlineWidth,
+        borderBottomWidth: isWall(level, cell.row + 1, cell.col) ? 0 : wallOutlineWidth,
+        borderLeftWidth: isWall(level, cell.row, cell.col - 1) ? 0 : wallOutlineWidth,
+        borderColor: wallOutlineColor,
+      });
+    });
+  });
+
+  return outlines;
+}
+
+function isWall(level: PreparedLevel, row: number, col: number) {
+  return level.cells[row]?.[col]?.kind === 'wall';
+}
+
 const styles = StyleSheet.create({
   boardFrame: {
     position: 'relative',
     overflow: 'hidden',
     borderWidth: 3,
+  },
+  graveyardBoardFrame: {
     borderColor: '#4B5850',
     backgroundColor: '#030607',
+  },
+  volcanoBoardFrame: {
+    borderColor: mazeThemeVisuals.volcano.wallOutlineColor,
+    backgroundColor: '#2A0903',
+  },
+  forestBoardFrame: {
+    borderColor: mazeThemeVisuals.forest.wallOutlineColor,
+    backgroundColor: '#041108',
   },
   cell: {
     position: 'absolute',
@@ -173,6 +252,18 @@ const styles = StyleSheet.create({
     backgroundColor: '#232A31',
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: 'rgba(118, 126, 116, 0.34)',
+  },
+  volcanoFloorCell: {
+    backgroundColor: 'rgba(21, 20, 21, 0.99)',
+  },
+  volcanoWallCell: {
+    backgroundColor: mazeThemeVisuals.volcano.wallColor,
+  },
+  forestFloorCell: {
+    backgroundColor: 'rgba(8, 18, 12, 0.99)',
+  },
+  forestWallCell: {
+    backgroundColor: mazeThemeVisuals.forest.wallColor,
   },
   tileOverlay: {
     position: 'absolute',

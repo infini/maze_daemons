@@ -119,21 +119,6 @@ function drawLine(image, x1, y1, x2, y2, width, rgba) {
   }
 }
 
-function drawQuadratic(image, x1, y1, cx, cy, x2, y2, width, rgba) {
-  const steps = Math.max(Math.abs(x2 - x1), Math.abs(y2 - y1), Math.abs(cx - x1), Math.abs(cy - y1));
-  let previousX = x1;
-  let previousY = y1;
-  for (let index = 1; index <= steps; index += 1) {
-    const t = index / steps;
-    const inv = 1 - t;
-    const x = inv * inv * x1 + 2 * inv * t * cx + t * t * x2;
-    const y = inv * inv * y1 + 2 * inv * t * cy + t * t * y2;
-    drawLine(image, Math.round(previousX), Math.round(previousY), Math.round(x), Math.round(y), width, rgba);
-    previousX = x;
-    previousY = y;
-  }
-}
-
 function pseudoNoise(x, y, seed) {
   let value = x * 374761393 + y * 668265263 + seed * 982451653;
   value = (value ^ (value >>> 13)) * 1274126177;
@@ -170,12 +155,12 @@ function writePng(filePath, image) {
   );
 }
 
-function noisyTile(baseHex, accentHex, seed) {
-  const image = createImage(64, 64);
+function noisyTile(baseHex, accentHex, seed, size = 64) {
+  const image = createImage(size, size);
   const base = color(baseHex);
   const accent = color(accentHex);
-  for (let y = 0; y < 64; y += 1) {
-    for (let x = 0; x < 64; x += 1) {
+  for (let y = 0; y < size; y += 1) {
+    for (let x = 0; x < size; x += 1) {
       const n = pseudoNoise(x, y, seed);
       const mix = 0.15 + n * 0.22;
       setPixel(image, x, y, [
@@ -255,54 +240,6 @@ function graveTile() {
   return image;
 }
 
-function spiderWebTile() {
-  const image = createImage(128, 128);
-  fill(image, color('#000000', 0));
-  const anchor = [10, 9];
-  const web = color('#E5ECE4', 128);
-  const brightWeb = color('#FFFFFF', 150);
-  const softWeb = color('#DCE3DA', 72);
-  const strands = [
-    [126, 7],
-    [126, 35],
-    [121, 68],
-    [94, 102],
-    [56, 124],
-    [20, 127],
-    [0, 114],
-    [0, 74],
-    [0, 34],
-    [0, 0],
-  ];
-
-  for (const [x, y] of strands) {
-    drawLine(image, anchor[0], anchor[1], x, y, 2, softWeb);
-  }
-  drawLine(image, 0, 0, 127, 0, 3, color('#FFFFFF', 100));
-  drawLine(image, 0, 0, 0, 127, 3, color('#FFFFFF', 100));
-
-  drawQuadratic(image, 28, 0, 20, 24, 0, 29, 2, web);
-  drawQuadratic(image, 53, 0, 42, 42, 0, 54, 2, softWeb);
-  drawQuadratic(image, 83, 0, 62, 69, 0, 83, 2, softWeb);
-  drawQuadratic(image, 113, 0, 83, 94, 8, 114, 2, color('#DCE3DA', 62));
-  drawQuadratic(image, 127, 17, 88, 20, 60, 0, 2, web);
-  drawQuadratic(image, 127, 44, 77, 49, 42, 6, 2, web);
-  drawQuadratic(image, 124, 73, 70, 76, 24, 22, 2, softWeb);
-  drawQuadratic(image, 101, 104, 60, 100, 10, 48, 2, softWeb);
-  drawQuadratic(image, 63, 124, 39, 103, 0, 80, 2, color('#DCE3DA', 58));
-  drawQuadratic(image, 15, 126, 17, 78, 0, 42, 2, color('#DCE3DA', 54));
-  drawLine(image, 63, 8, 72, 20, 1, brightWeb);
-  drawLine(image, 72, 20, 67, 29, 1, brightWeb);
-  drawLine(image, 31, 36, 39, 47, 1, color('#FFFFFF', 118));
-  drawLine(image, 39, 47, 33, 58, 1, color('#FFFFFF', 100));
-  fillCircle(image, 58, 72, 3, color('#CDD6CE', 90));
-  drawLine(image, 58, 72, 54, 78, 1, color('#CDD6CE', 88));
-  drawLine(image, 58, 72, 64, 79, 1, color('#CDD6CE', 88));
-  drawLine(image, 56, 73, 50, 73, 1, color('#CDD6CE', 88));
-  drawLine(image, 60, 73, 67, 73, 1, color('#CDD6CE', 88));
-  return image;
-}
-
 function coinTile() {
   const image = createImage(64, 64);
   fill(image, color('#000000', 0));
@@ -311,6 +248,18 @@ function coinTile() {
   fillCircle(image, 30, 29, 13, color('#FFB229'));
   fillRect(image, 28, 15, 7, 29, color('#FFF3A8', 160));
   fillRect(image, 21, 24, 27, 5, color('#FFF3A8', 120));
+  return image;
+}
+
+function blueCoinTile() {
+  const image = createImage(64, 64);
+  fill(image, color('#000000', 0));
+  fillCircle(image, 32, 32, 23, color('#053F7A', 235));
+  fillCircle(image, 30, 29, 20, color('#4BC8FF'));
+  fillCircle(image, 30, 29, 13, color('#147BD1'));
+  fillRect(image, 28, 14, 7, 31, color('#D7F7FF', 185));
+  fillRect(image, 20, 24, 29, 5, color('#B7EEFF', 145));
+  fillRect(image, 27, 26, 7, 7, color('#E8FCFF', 205));
   return image;
 }
 
@@ -527,9 +476,9 @@ function appIcon(size, monochrome = false) {
 writePng(join(rootDir, 'assets/tiles/floor.png'), floorTile());
 writePng(join(rootDir, 'assets/tiles/wall.png'), wallTile());
 writePng(join(rootDir, 'assets/tiles/coin.png'), coinTile());
+writePng(join(rootDir, 'assets/tiles/blue-coin.png'), blueCoinTile());
 writePng(join(rootDir, 'assets/tiles/exit.png'), exitTile());
 writePng(join(rootDir, 'assets/tiles/grave.png'), graveTile());
-writePng(join(rootDir, 'assets/tiles/spider-web.png'), spiderWebTile());
 writePng(join(rootDir, 'assets/characters/zombie.png'), zombie());
 writePng(join(rootDir, 'assets/characters/creeper.png'), creeper());
 writePng(join(rootDir, 'assets/characters/skeleton.png'), skeleton());

@@ -8,7 +8,7 @@ import {
   movePlayerToTarget,
   prepareLevel,
 } from '../../../game/maze';
-import type { Position } from '../../../game/types';
+import type { MazeThemeId, Position } from '../../../game/types';
 import {
   createTimerState,
   finishTimer,
@@ -41,6 +41,7 @@ export function useMazeDaemonsGame() {
   const lastPlayedRestoredRef = useRef(false);
   const [clearEffectVisible, setClearEffectVisible] = useState(false);
   const [clearSoundKey, setClearSoundKey] = useState(0);
+  const [blueCoinPickupSoundKey, setBlueCoinPickupSoundKey] = useState(0);
   const [coinPickupEffects, setCoinPickupEffects] = useState<CoinPickupEffect[]>([]);
   const [coinPickupSoundKey, setCoinPickupSoundKey] = useState(0);
   const { progress, progressLoaded, setProgress } = useProgressState();
@@ -58,12 +59,14 @@ export function useMazeDaemonsGame() {
 
   const persistedCoinIds = useMemo(() => {
     const prefix = `${level.id}:`;
+    const currentCoinIds = new Set(Object.keys(level.coins));
     return new Set(
       progress.collectedCoinKeys
         .filter((key) => key.startsWith(prefix))
-        .map((key) => key.slice(prefix.length)),
+        .map((key) => key.slice(prefix.length))
+        .filter((coinId) => currentCoinIds.has(coinId)),
     );
-  }, [level.id, progress.collectedCoinKeys]);
+  }, [level.coins, level.id, progress.collectedCoinKeys]);
 
   const hiddenCoinIds = useMemo(
     () => new Set([...persistedCoinIds, ...gameState.collectedCoinIds]),
@@ -147,15 +150,17 @@ export function useMazeDaemonsGame() {
     (coinIds: string[]) => {
       const timestamp = Date.now();
       const effects = coinIds.flatMap((coinId, index) => {
-        const position = level.coins[coinId];
-        if (!position) {
+        const coin = level.coins[coinId];
+        if (!coin) {
           return [];
         }
 
         return [
           {
+            coinType: coin.type,
             id: `${level.id}:${coinId}:${timestamp}:${index}`,
-            position,
+            position: coin.position,
+            reward: coin.reward,
           },
         ];
       });
@@ -164,7 +169,11 @@ export function useMazeDaemonsGame() {
         return;
       }
 
-      setCoinPickupSoundKey((current) => current + 1);
+      if (effects.some((effect) => effect.coinType === 'blue')) {
+        setBlueCoinPickupSoundKey((current) => current + 1);
+      } else {
+        setCoinPickupSoundKey((current) => current + 1);
+      }
       const effectIds = new Set(effects.map((effect) => effect.id));
       setCoinPickupEffects((current) => [...current, ...effects]);
       const timeout = setTimeout(() => {
@@ -286,8 +295,8 @@ export function useMazeDaemonsGame() {
           coins:
             current.coins +
             newlyCollectedCoinIds
-              .map((coinId) => coinKey(level.id, coinId))
-              .filter((key) => !current.collectedCoinKeys.includes(key)).length,
+              .filter((coinId) => !current.collectedCoinKeys.includes(coinKey(level.id, coinId)))
+              .reduce((total, coinId) => total + (level.coins[coinId]?.reward ?? 0), 0),
           collectedCoinKeys: unique([
             ...current.collectedCoinKeys,
             ...newlyCollectedCoinIds.map((coinId) => coinKey(level.id, coinId)),
@@ -317,6 +326,7 @@ export function useMazeDaemonsGame() {
       difficultyIndex,
       gameState,
       level.id,
+      level.coins,
       persistedCoinIds,
       scheduleStageClear,
       showCoinPickupEffects,
@@ -431,8 +441,18 @@ export function useMazeDaemonsGame() {
     [setProgress],
   );
 
+  const setMazeTheme = useCallback(
+    (mazeThemeId: MazeThemeId) => {
+      setProgress((current) =>
+        current.mazeThemeId === mazeThemeId ? current : { ...current, mazeThemeId },
+      );
+    },
+    [setProgress],
+  );
+
   return {
     animationResetKey,
+    blueCoinPickupSoundKey,
     canAdvanceAfterWin,
     clearEffectVisible,
     clearSoundKey,
@@ -458,6 +478,7 @@ export function useMazeDaemonsGame() {
     onReset: resetCurrentRun,
     onSelectDifficulty: selectDifficulty,
     onSetAudioVolume: setAudioVolume,
+    onSetMazeTheme: setMazeTheme,
     onStartPress: startRun,
     progress,
     progressLoaded,

@@ -54,9 +54,12 @@ The generator validates:
 - start marker exists
 - exit marker exists
 - at least one coin exists
+- exactly the configured number of blue coins exists
 - exit is reachable
 - exit path distance is not too close to the start
 - every coin is reachable before entering the exit
+- coins satisfy configured minimum spacing, quadrant coverage, and maximum quadrant share
+- every blue coin is placed in a dead end when `coins.bluePlacement.requireDeadEnd` is enabled
 
 If generated stage semantics change, update `scripts/generate-levels.mjs` and consider bumping the catalog version. The catalog version is tied to the AsyncStorage progress key, and compatible older progress is migrated into the newest key on launch.
 
@@ -92,7 +95,7 @@ android/app/build/outputs/apk/release/app-release.apk
 ```bash
 adb devices
 adb install -r android/app/build/outputs/apk/release/app-release.apk
-adb shell monkey -p com.infini.mazedaemons -c android.intent.category.LAUNCHER 1
+adb shell am start -n com.infini.mazedaemons/.MainActivity
 ```
 
 ## Runtime Smoke Checks
@@ -100,19 +103,22 @@ adb shell monkey -p com.infini.mazedaemons -c android.intent.category.LAUNCHER 1
 After installing on the tablet:
 
 1. Confirm the app opens without crash.
-2. Confirm the maze board shows the graveyard style with graves, spider webs, fog, and visible paths.
-3. Confirm coins are visible on a fresh catalog version.
+2. Confirm the default maze theme shows graves and fog with no spider webs.
+3. Confirm standard coins and one blue coin are visible on a fresh catalog version.
 4. Collect a visible coin and confirm the pink pig `YUMMY!` effect appears briefly.
 5. Confirm BGM plays quietly after app launch.
 6. Tap a reachable path cell and confirm movement occurs and the touch sound plays.
 7. Tap a cell that requires up to two turns and confirm direct movement.
-8. Collect a coin and confirm the coin sound is the short full-belly burp cue.
-9. Clear a stage and confirm the ender dragon `CLEAR` effect and heavy eerie clear sound play, then the next stage starts at its own start cell.
-10. Open settings and confirm BGM, touch, coin, and clear volume controls can preview sounds and persist after relaunch.
-11. Relaunch the app and confirm it restores the last played stage.
-12. After bumping the stage catalog version, install without clearing app data and confirm the previous unlocked difficulty, stage, coins, purchases, and selected items migrate.
-13. Use the stage button to return to a cleared stage; it must also start at that stage's start cell.
-14. Open the shop and confirm products still render horizontally.
+8. Collect a standard coin and confirm the wallet increases by `1` and the coin sound plays.
+9. Collect the blue coin from its remote dead end and confirm the wallet increases by `5`, the effect shows `+5`, and the two-second recorded fart sound plays.
+10. Clear a stage and confirm the ender dragon `CLEAR` effect and heavy eerie clear sound play, then the next stage starts at its own start cell.
+11. Open settings and confirm BGM, touch, coin, and clear volume controls can preview sounds and persist after relaunch.
+12. Switch to the volcano theme and confirm corridors remain dark while blocked cells become molten-orange walls with thick deep-red outer outlines and no internal cell, crack, or particle marks.
+13. Switch to the forest theme and confirm corridors remain dark while blocked cells become medium-green walls with thick deep-green outer outlines and no internal cell or particle marks.
+14. Relaunch the app and confirm it restores the selected theme and last played stage.
+15. After bumping the stage catalog version, install without clearing app data and confirm the previous unlocked difficulty, stage, coins, purchases, selected theme, and selected items migrate.
+16. Use the stage button to return to a cleared stage; it must also start at that stage's start cell.
+17. Open the shop and confirm products still render horizontally.
 
 Useful log command:
 
@@ -141,6 +147,28 @@ Current movement settings:
     "coinPickupVolume": 0.76,
     "tapVolume": 0.34,
     "volumeStep": 0.1
+  },
+  "coins": {
+    "standardReward": 1,
+    "blueReward": 5,
+    "bluePerStage": 1,
+    "bluePlacement": {
+      "detourWeight": 3,
+      "distanceWeight": 1,
+      "minimumCoinDistance": 7,
+      "requireDeadEnd": true
+    },
+    "standardPlacement": {
+      "challengeWeight": 1,
+      "coverageWeight": 2,
+      "maximumQuadrantShare": 0.6,
+      "minimumCoinDistance": 5,
+      "minimumOccupiedQuadrants": 3,
+      "spreadWeight": 4
+    }
+  },
+  "mazeTheme": {
+    "defaultId": "graveyard"
   },
   "movement": {
     "maxTargetCornerTurns": 2,

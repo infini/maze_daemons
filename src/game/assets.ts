@@ -1,11 +1,11 @@
 import type { PlayerSkinId } from './types';
 
 export const tileImages = {
+  blueCoin: require('../../assets/tiles/blue-coin.png'),
   coin: require('../../assets/tiles/coin.png'),
   exit: require('../../assets/tiles/exit.png'),
   floor: require('../../assets/tiles/floor.png'),
   grave: require('../../assets/tiles/grave.png'),
-  spiderWeb: require('../../assets/tiles/spider-web.png'),
   wall: require('../../assets/tiles/wall.png'),
 };
 

@@ -14,6 +14,7 @@ export const defaultProgress: ProgressState = {
   collectedCoinKeys: [],
   completedStageKeys: [],
   lastPlayedStageId: null,
+  mazeThemeId: settings.mazeTheme.defaultId,
   purchasedTrailEffectIds: [],
   selectedTrailEffectId: null,
   purchasedSkinIds: [],

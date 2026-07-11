@@ -14,7 +14,9 @@ export function MazeGameScreen() {
   const isLandscape = width > height;
   const useSideLayout = isLandscape || width >= 1000;
   const game = useMazeDaemonsGame();
-  const { playClear, playCoinPickup, playTap, previewSound } = useMazeSounds(game.progress.audioSettings);
+  const { playBlueCoinPickup, playClear, playCoinPickup, playTap, previewSound } = useMazeSounds(
+    game.progress.audioSettings,
+  );
   const { boardHeight, boardWidth, cellHeight, cellWidth, panelWidth } = getBoardMetrics({
     height,
     isLandscape: useSideLayout,
@@ -50,13 +52,25 @@ export function MazeGameScreen() {
   }, [game.coinPickupSoundKey, playCoinPickup]);
 
   useEffect(() => {
+    if (game.blueCoinPickupSoundKey > 0) {
+      playBlueCoinPickup();
+    }
+  }, [game.blueCoinPickupSoundKey, playBlueCoinPickup]);
+
+  useEffect(() => {
     if (game.clearSoundKey > 0) {
       playClear();
     }
   }, [game.clearSoundKey, playClear]);
 
   return (
-    <View style={styles.screen}>
+    <View
+      style={[
+        styles.screen,
+        game.progress.mazeThemeId === 'volcano' ? styles.volcanoScreen : null,
+        game.progress.mazeThemeId === 'forest' ? styles.forestScreen : null,
+      ]}
+    >
       <ExpoStatusBar hidden style="light" />
       {useSideLayout ? (
         renderContent()
@@ -81,6 +95,7 @@ export function MazeGameScreen() {
           hiddenCoinIds={game.hiddenCoinIds}
           isPaused={game.isPaused}
           level={game.level}
+          mazeThemeId={game.progress.mazeThemeId}
           onCellPress={handleCellPress}
           selectedSkinId={game.progress.selectedSkinId}
           selectedTrailEffectId={game.progress.selectedTrailEffectId}
@@ -110,6 +125,7 @@ export function MazeGameScreen() {
           onReset={game.onReset}
           onSelectDifficulty={game.onSelectDifficulty}
           onSetAudioVolume={game.onSetAudioVolume}
+          onSetMazeTheme={game.onSetMazeTheme}
           onStartPress={game.onStartPress}
           panelWidth={useSideLayout ? panelWidth : boardWidth}
           progress={game.progress}
@@ -131,6 +147,12 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: '#070B18',
+  },
+  volcanoScreen: {
+    backgroundColor: '#120805',
+  },
+  forestScreen: {
+    backgroundColor: '#061009',
   },
   scrollContent: {
     flexGrow: 1,

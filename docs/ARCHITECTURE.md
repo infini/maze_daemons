@@ -18,12 +18,12 @@ Keep screen-level files focused on composition. New game rules should not be add
   - Converts touch coordinates into row/column positions.
   - Displays walls, floor, coins, exit, decorative overlays, trail overlays, and the player token.
 - `src/features/maze-game/components/MazeAtmosphere.tsx`
-  - Renders grave, spider web, fog, and vignette visuals on top of the board without changing touch behavior.
+  - Renders graveyard, volcano, or forest atmosphere layers without changing touch behavior.
 - `src/features/maze-game/components/Trail.tsx`
   - Renders purchased movement trail segments.
   - Does not render a center dot.
 - `src/features/maze-game/components/CoinPickupEffect.tsx`
-  - Renders the short blocky pink pig `YUMMY!` effect when a newly visible coin is collected.
+  - Renders the short blocky pink pig `YUMMY!` effect and shows the larger blue coin reward.
 - `src/features/maze-game/components/ClearEffect.tsx`
   - Renders the short `CLEAR` overlay with the ender dragon before automatic stage advance.
 - `src/features/maze-game/hooks/useAnimatedToken.ts`
@@ -31,7 +31,7 @@ Keep screen-level files focused on composition. New game rules should not be add
   - Reads animation timings from `src/data/game-settings.json`.
 - `src/features/maze-game/hooks/useMazeSounds.ts`
   - Owns BGM playback and short sound effects through `expo-audio`.
-  - Applies saved BGM, tap, coin, and clear volume settings.
+  - Applies saved BGM, tap, standard/blue coin, and clear volume settings.
 
 ### HUD
 
@@ -45,6 +45,7 @@ Keep screen-level files focused on composition. New game rules should not be add
 - `src/features/maze-game/components/hud/ShopPanel.tsx`
   - Shop UI for trail effects and skins.
 - `src/features/maze-game/components/hud/SettingsPanel.tsx`
+  - Provides the persisted graveyard/volcano/forest maze theme selector.
   - Per-channel audio volume controls for BGM, touch, coin, and clear sounds.
   - Provides per-channel preview buttons so settings can verify sounds without gameplay events.
 
@@ -60,6 +61,7 @@ When adding new HUD controls, prefer creating or extending a HUD subcomponent in
   - Storage key includes the generated stage catalog version.
   - Migrates compatible progress from older catalog storage keys into the current catalog key.
   - Persists the last played stage ID.
+  - Persists the selected maze theme.
   - Persists per-channel audio volume settings.
 - `src/features/maze-game/hooks/useShopActions.ts`
   - Contains shop purchase/equip behavior and shop messages.
@@ -69,7 +71,7 @@ When adding new HUD controls, prefer creating or extending a HUD subcomponent in
 - `src/features/maze-game/utils/layout.ts`
   - Board and panel sizing.
 - `src/features/maze-game/utils/mazeDecorations.ts`
-  - Selects deterministic grave and spider web decoration positions for each prepared level.
+  - Selects deterministic grave decorations for the graveyard theme.
 - `src/features/maze-game/utils/progression.ts`
   - Difficulty unlocks, stage unlocks, selectable stage list, and next-stage location.
 - `src/features/maze-game/utils/statusText.ts`
@@ -91,7 +93,7 @@ When adding new HUD controls, prefer creating or extending a HUD subcomponent in
 - `src/game/trails.ts`
   - Builds the trail map used by `Trail`.
 - `src/game/coins.ts`
-  - Builds persisted coin keys.
+  - Builds position-stable coin IDs and persisted coin keys.
 - `src/game/grid.ts`
   - Grid helpers such as directions, adjacency, position keys, and walkability.
 - `src/game/types.ts`
@@ -106,17 +108,19 @@ When adding new HUD controls, prefer creating or extending a HUD subcomponent in
 - `src/data/settings.ts`
   - Typed settings export.
 - `src/data/shop.ts`
-  - Shop products, prices, and default progress.
+  - Shop products, prices, and default progress, including the configured default maze theme.
+- `src/data/themes.ts`
+  - Maze theme option metadata, wall visual settings, and persisted-value normalization.
 - `src/data/levels.ts`
   - Stage catalog export.
 - `src/data/levels/stage-catalog.json`
   - Generated stage catalog.
-- `assets/sounds/*.wav`
-  - Generated audio assets.
+- `assets/sounds/*.{wav,mp3}`
+  - Generated audio assets and licensed source recordings used directly by the app.
 - `assets/sounds/sources/*`
   - Source recordings and license notes used by the sound generator.
 - `assets/tiles/*.png`
-  - Generated tile, coin, exit, grave, and spider web image assets.
+  - Generated standard/blue coin, exit, and grave image assets.
 - `scripts/generate-assets.mjs`
   - Generates local PNG assets for tiles, characters, and app icons.
 - `scripts/generate-sounds.mjs`

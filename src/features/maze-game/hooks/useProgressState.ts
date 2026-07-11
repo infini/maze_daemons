@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useState } from 'react';
 import { catalog, levels } from '../../../data/levels';
 import { defaultProgress, skinItems, trailEffectItems } from '../../../data/shop';
+import { normalizeMazeThemeId } from '../../../data/themes';
 import type { PlayerSkinId, ProgressState, ShopSkinId, TrailEffectId } from '../../../game/types';
 
 const progressStorageKeyPrefix = 'maze-daemons:progress:v';
@@ -104,6 +105,7 @@ function mergeProgress(current: ProgressState, previous: ProgressState): Progres
     collectedCoinKeys: unique([...previous.collectedCoinKeys, ...current.collectedCoinKeys]),
     completedStageKeys: validCompletedStageIds([...previous.completedStageKeys, ...current.completedStageKeys]),
     lastPlayedStageId: chooseLastPlayedStageId(current.lastPlayedStageId, previous.lastPlayedStageId),
+    mazeThemeId: currentScore > 0 ? current.mazeThemeId : previous.mazeThemeId,
     purchasedTrailEffectIds,
     selectedTrailEffectId,
     purchasedSkinIds,
@@ -217,6 +219,7 @@ function normalizeProgress(stored: string | null): ProgressState {
         : [],
       completedStageKeys: validCompletedStageIds(parsed.completedStageKeys),
       lastPlayedStageId,
+      mazeThemeId: normalizeMazeThemeId(parsed.mazeThemeId),
       purchasedTrailEffectIds,
       selectedTrailEffectId,
       purchasedSkinIds,

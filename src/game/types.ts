@@ -36,6 +36,10 @@ export type ShopSkinId =
 
 export type PlayerSkinId = 'zombie' | ShopSkinId;
 
+export type MazeThemeId = 'graveyard' | 'volcano' | 'forest';
+
+export type CoinType = 'standard' | 'blue';
+
 export type LevelData = {
   id: string;
   title: string;
@@ -68,6 +72,13 @@ export type Cell = {
   row: number;
   col: number;
   coinId?: string;
+  coinType?: CoinType;
+};
+
+export type LevelCoin = {
+  position: Position;
+  reward: number;
+  type: CoinType;
 };
 
 export type TrailSegment = {
@@ -88,7 +99,7 @@ export type PreparedLevel = {
   cells: Cell[][];
   start: Position;
   exit: Position;
-  coins: Record<string, Position>;
+  coins: Record<string, LevelCoin>;
 };
 
 export type GameState = {
@@ -122,6 +133,7 @@ export type ProgressState = {
   collectedCoinKeys: string[];
   completedStageKeys: string[];
   lastPlayedStageId: string | null;
+  mazeThemeId: MazeThemeId;
   purchasedTrailEffectIds: TrailEffectId[];
   selectedTrailEffectId: TrailEffectId | null;
   purchasedSkinIds: ShopSkinId[];

@@ -1,15 +1,23 @@
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const rootDir = join(__dirname, '..');
 const outputPath = join(rootDir, 'src/data/levels/stage-catalog.json');
+const gameSettingsPath = join(rootDir, 'src/data/game-settings.json');
+const gameSettings = JSON.parse(readFileSync(gameSettingsPath, 'utf8'));
+const blueCoinsPerStage = gameSettings.coins?.bluePerStage;
+
+if (!Number.isInteger(blueCoinsPerStage) || blueCoinsPerStage < 1) {
+  throw new Error('coins.bluePerStage must be a positive integer.');
+}
 
 const legend = {
   '#': 'wall',
   '.': 'floor',
   A: 'start',
+  B: 'blueCoin',
   C: 'coin',
   D: 'exit',
 };
@@ -307,7 +315,7 @@ function degree(grid, position) {
   return neighbors(position).filter((next) => grid[next.row]?.[next.col] === '.').length;
 }
 
-function chooseMarkers(grid, random, coinCount) {
+function chooseMarkers(grid, random, coinCount, blueCoinCount) {
   const start = { row: 1, col: 1 };
   const distances = bfs(grid, start);
   const minimumExitDistance = getMinimumExitDistance(grid[0].length, grid.length);
@@ -335,21 +343,113 @@ function chooseMarkers(grid, random, coinCount) {
     })
     .sort((a, b) => b.score - a.score);
 
-  const selectedCoins = [];
   const blocked = new Set([keyOf(start), keyOf(exit)]);
-  for (const candidate of coinCandidates) {
-    if (selectedCoins.length >= coinCount) {
-      break;
+  const selectedCoins = chooseSpreadCoins(grid, coinCandidates, blocked, coinCount);
+
+  const rankedBlueCoinCandidates = rankBlueCoinCandidates(grid, coinCandidates, start, exit);
+  const blueCoins = chooseBlueCoins(
+    rankedBlueCoinCandidates,
+    blocked,
+    selectedCoins,
+    blueCoinCount,
+  );
+  return { start, exit, coins: selectedCoins, blueCoins };
+}
+
+function chooseSpreadCoins(grid, candidates, blocked, count) {
+  const selectedCoins = [];
+  const placement = gameSettings.coins.standardPlacement;
+  const distanceScale = Math.max(1, grid.length + grid[0].length);
+  const minimumCandidateScore = Math.min(...candidates.map((candidate) => candidate.score));
+  const candidateScoreRange = Math.max(
+    1,
+    Math.max(...candidates.map((candidate) => candidate.score)) - minimumCandidateScore,
+  );
+
+  while (selectedCoins.length < count) {
+    const nextCandidate = candidates
+      .filter(
+        (candidate) =>
+          !blocked.has(keyOf(candidate.cell)) &&
+          !tooCloseToExisting(candidate.cell, selectedCoins, placement.minimumCoinDistance),
+      )
+      .map((candidate) => {
+        const candidateQuadrant = quadrantOf(candidate.cell, grid[0].length, grid.length);
+        const occupiesNewQuadrant = selectedCoins.every(
+          (coin) => quadrantOf(coin, grid[0].length, grid.length) !== candidateQuadrant,
+        );
+        const spreadDistance =
+          selectedCoins.length === 0
+            ? 0
+            : Math.min(...selectedCoins.map((coin) => manhattanDistance(candidate.cell, coin)));
+        const challengeScore = (candidate.score - minimumCandidateScore) / candidateScoreRange;
+        return {
+          ...candidate,
+          selectionScore:
+            challengeScore * placement.challengeWeight +
+            (occupiesNewQuadrant ? placement.coverageWeight : 0) +
+            (spreadDistance / distanceScale) * placement.spreadWeight,
+        };
+      })
+      .sort((left, right) => right.selectionScore - left.selectionScore || right.score - left.score)[0];
+
+    if (!nextCandidate) {
+      throw new Error(`Unable to spread ${count} standard coins.`);
     }
-    const key = keyOf(candidate.cell);
-    if (blocked.has(key) || tooCloseToExisting(candidate.cell, selectedCoins, 5)) {
-      continue;
-    }
-    blocked.add(key);
-    selectedCoins.push(candidate.cell);
+
+    blocked.add(keyOf(nextCandidate.cell));
+    selectedCoins.push(nextCandidate.cell);
   }
 
-  return { start, exit, coins: selectedCoins };
+  return selectedCoins;
+}
+
+function rankBlueCoinCandidates(grid, candidates, start, exit) {
+  const startDistances = bfs(grid, start);
+  const exitDistances = bfs(grid, exit);
+  const shortestExitDistance = startDistances.get(keyOf(exit)) ?? 0;
+  const placement = gameSettings.coins.bluePlacement;
+
+  return candidates
+    .filter((candidate) => !placement.requireDeadEnd || degree(grid, candidate.cell) === 1)
+    .map((candidate) => {
+      const startDistance = startDistances.get(keyOf(candidate.cell)) ?? 0;
+      const exitDistance = exitDistances.get(keyOf(candidate.cell)) ?? 0;
+      const detourDistance = Math.max(0, startDistance + exitDistance - shortestExitDistance);
+      return {
+        ...candidate,
+        blueScore:
+          detourDistance * placement.detourWeight +
+          startDistance * placement.distanceWeight,
+      };
+    })
+    .sort((left, right) => right.blueScore - left.blueScore || right.score - left.score);
+}
+
+function chooseBlueCoins(candidates, blocked, standardCoins, count) {
+  const selectedBlueCoins = [];
+  const minimumCoinDistance = gameSettings.coins.bluePlacement.minimumCoinDistance;
+
+  for (const candidate of candidates) {
+    if (selectedBlueCoins.length >= count) {
+      return selectedBlueCoins;
+    }
+
+    const key = keyOf(candidate.cell);
+    const selectedCoins = [...standardCoins, ...selectedBlueCoins];
+    if (blocked.has(key) || tooCloseToExisting(candidate.cell, selectedCoins, minimumCoinDistance)) {
+      continue;
+    }
+
+    blocked.add(key);
+    selectedBlueCoins.push(candidate.cell);
+  }
+
+  if (selectedBlueCoins.length === count) {
+    return selectedBlueCoins;
+  }
+
+  throw new Error(`Unable to place ${count} blue coin(s).`);
 }
 
 function getMinimumExitDistance(width, height) {
@@ -357,9 +457,15 @@ function getMinimumExitDistance(width, height) {
 }
 
 function tooCloseToExisting(cell, selected, minDistance) {
-  return selected.some(
-    (other) => Math.abs(cell.row - other.row) + Math.abs(cell.col - other.col) < minDistance,
-  );
+  return selected.some((other) => manhattanDistance(cell, other) < minDistance);
+}
+
+function manhattanDistance(left, right) {
+  return Math.abs(left.row - right.row) + Math.abs(left.col - right.col);
+}
+
+function quadrantOf(position, width, height) {
+  return (position.row >= height / 2 ? 2 : 0) + (position.col >= width / 2 ? 1 : 0);
 }
 
 function makeStage(config, stageNumber) {
@@ -368,12 +474,15 @@ function makeStage(config, stageNumber) {
   const grid = carveMaze(width, height, random);
   addLoops(grid, config.braidRate, random);
   const coinCount = config.coinBase + Math.floor((stageNumber - 1) / 10);
-  const markers = chooseMarkers(grid, random, coinCount);
+  const markers = chooseMarkers(grid, random, coinCount, blueCoinsPerStage);
 
   grid[markers.start.row][markers.start.col] = 'A';
   grid[markers.exit.row][markers.exit.col] = 'D';
   markers.coins.forEach((coin) => {
     grid[coin.row][coin.col] = 'C';
+  });
+  markers.blueCoins.forEach((coin) => {
+    grid[coin.row][coin.col] = 'B';
   });
 
   return {
@@ -391,11 +500,12 @@ function makeStage(config, stageNumber) {
 
 function validateStage(stage) {
   const grid = stage.rows.map((row) => [...row]);
-  const markers = { coins: [] };
+  const markers = { blueCoins: [], coins: [] };
 
   stage.rows.forEach((row, rowIndex) => {
     [...row].forEach((tile, col) => {
       if (tile === 'A') markers.start = { row: rowIndex, col };
+      if (tile === 'B') markers.blueCoins.push({ row: rowIndex, col });
       if (tile === 'D') markers.exit = { row: rowIndex, col };
       if (tile === 'C') markers.coins.push({ row: rowIndex, col });
     });
@@ -404,8 +514,14 @@ function validateStage(stage) {
   if (!markers.start || !markers.exit || markers.coins.length === 0) {
     throw new Error(`Invalid markers in ${stage.id}`);
   }
+  if (markers.blueCoins.length !== blueCoinsPerStage) {
+    throw new Error(
+      `Invalid blue coin count in ${stage.id}. expected=${blueCoinsPerStage}, actual=${markers.blueCoins.length}`,
+    );
+  }
 
-  for (const marker of [markers.start, markers.exit, ...markers.coins]) {
+  const allCoins = [...markers.coins, ...markers.blueCoins];
+  for (const marker of [markers.start, markers.exit, ...allCoins]) {
     grid[marker.row][marker.col] = '.';
   }
 
@@ -422,7 +538,7 @@ function validateStage(stage) {
   }
 
   const reachableBeforeExit = bfs(grid, markers.start, new Set([keyOf(markers.exit)]));
-  markers.coins.forEach((coin) => {
+  allCoins.forEach((coin) => {
     if (!reachable.has(keyOf(coin))) {
       throw new Error(`Coin is unreachable in ${stage.id}`);
     }
@@ -430,6 +546,49 @@ function validateStage(stage) {
       throw new Error(`Coin is only reachable through the exit in ${stage.id}`);
     }
   });
+  markers.blueCoins.forEach((coin) => {
+    if (gameSettings.coins.bluePlacement.requireDeadEnd && degree(grid, coin) !== 1) {
+      throw new Error(`Blue coin is not in a dead end in ${stage.id}`);
+    }
+    if (
+      tooCloseToExisting(
+        coin,
+        markers.coins,
+        gameSettings.coins.bluePlacement.minimumCoinDistance,
+      )
+    ) {
+      throw new Error(`Blue coin is too close to another coin in ${stage.id}`);
+    }
+  });
+  markers.coins.forEach((coin, index) => {
+    if (
+      tooCloseToExisting(
+        coin,
+        markers.coins.slice(index + 1),
+        gameSettings.coins.standardPlacement.minimumCoinDistance,
+      )
+    ) {
+      throw new Error(`Standard coins are too close in ${stage.id}`);
+    }
+  });
+  validateCoinDistribution(stage, allCoins);
+}
+
+function validateCoinDistribution(stage, coins) {
+  const placement = gameSettings.coins.standardPlacement;
+  const quadrantCounts = [0, 0, 0, 0];
+  coins.forEach((coin) => {
+    quadrantCounts[quadrantOf(coin, stage.rows[0].length, stage.rows.length)] += 1;
+  });
+  const occupiedQuadrants = quadrantCounts.filter((count) => count > 0).length;
+  const largestQuadrantShare = Math.max(...quadrantCounts) / coins.length;
+
+  if (occupiedQuadrants < placement.minimumOccupiedQuadrants) {
+    throw new Error(`Coins do not cover enough map quadrants in ${stage.id}`);
+  }
+  if (largestQuadrantShare > placement.maximumQuadrantShare) {
+    throw new Error(`Too many coins are clustered in one quadrant in ${stage.id}`);
+  }
 }
 
 function neighbors(position) {
@@ -450,7 +609,7 @@ function same(a, b) {
 }
 
 const catalog = {
-  version: 3,
+  version: 4,
   stagesPerDifficulty: 50,
   difficulties: difficulties.map((difficulty) => ({
     id: difficulty.id,

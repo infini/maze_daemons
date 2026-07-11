@@ -3,6 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type {
   AudioSettings,
   DifficultyData,
+  MazeThemeId,
   PlayerSkinId,
   ProgressState,
   ShopSkinId,
@@ -38,6 +39,7 @@ export function GameHud({
   onReset,
   onSelectDifficulty,
   onSetAudioVolume,
+  onSetMazeTheme,
   onStartPress,
   panelWidth,
   progress,
@@ -72,6 +74,7 @@ export function GameHud({
   onReset: () => void;
   onSelectDifficulty: (index: number) => void;
   onSetAudioVolume: (key: AudioVolumeKey, value: number) => void;
+  onSetMazeTheme: (mazeThemeId: MazeThemeId) => void;
   onStartPress: () => void;
   panelWidth: number;
   progress: ProgressState;
@@ -187,8 +190,10 @@ export function GameHud({
         {settingsOpen ? (
           <SettingsPanel
             audioSettings={audioSettings}
+            mazeThemeId={progress.mazeThemeId}
             onPreviewAudio={onPreviewAudio}
             onSetAudioVolume={onSetAudioVolume}
+            onSetMazeTheme={onSetMazeTheme}
             progressLoaded={progressLoaded}
           />
         ) : null}

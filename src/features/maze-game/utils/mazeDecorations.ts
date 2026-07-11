@@ -1,6 +1,6 @@
-import type { PreparedLevel } from '../../../game/types';
+import type { MazeThemeId, PreparedLevel } from '../../../game/types';
 
-export type CellDecorationType = 'grave' | 'spiderWeb';
+export type CellDecorationType = 'grave';
 
 export type CellDecoration = {
   type: CellDecorationType;
@@ -9,47 +9,40 @@ export type CellDecoration = {
   scale: number;
 };
 
-export function buildMazeDecorations(level: PreparedLevel) {
+export function buildMazeDecorations(level: PreparedLevel, mazeThemeId: MazeThemeId) {
   const decorations = new Map<string, CellDecoration>();
-  const graveCandidates: Array<{ key: string; score: number; decoration: CellDecoration }> = [];
-  const webCandidates: Array<{ key: string; score: number; decoration: CellDecoration }> = [];
+  if (mazeThemeId !== 'graveyard') {
+    return decorations;
+  }
+
+  const landmarkCandidates: Array<{ key: string; score: number; decoration: CellDecoration }> = [];
   const area = level.width * level.height;
-  const maxGraves = Math.max(4, Math.min(24, Math.floor(area / 180)));
-  const maxWebs = Math.max(5, Math.min(32, Math.floor(area / 140)));
+  const maxLandmarks = Math.max(4, Math.min(24, Math.floor(area / 180)));
 
   level.cells.forEach((row) => {
     row.forEach((cell) => {
       const key = `${cell.row}:${cell.col}`;
-      if (cell.kind === 'wall' && hasWalkableNeighbor(level, cell.row, cell.col)) {
-        const score = stableNoise(`${level.id}:grave`, cell.row, cell.col);
-        graveCandidates.push({ key, score, decoration: createDecoration('grave', score) });
-        return;
-      }
-
       if (
-        cell.kind === 'floor' &&
-        !isStartPosition(level, cell.row, cell.col) &&
-        hasWallCorner(level, cell.row, cell.col)
+        cell.kind === 'wall' &&
+        hasWalkableNeighbor(level, cell.row, cell.col)
       ) {
-        const score = stableNoise(`${level.id}:web`, cell.row, cell.col);
-        webCandidates.push({ key, score, decoration: createDecoration('spiderWeb', score) });
+        const score = stableNoise(`${level.id}:grave`, cell.row, cell.col);
+        landmarkCandidates.push({ key, score, decoration: createDecoration(score) });
       }
     });
   });
 
-  selectDecorations(decorations, graveCandidates, maxGraves);
-  selectDecorations(decorations, webCandidates, maxWebs);
+  selectDecorations(decorations, landmarkCandidates, maxLandmarks);
   return decorations;
 }
 
-function createDecoration(type: CellDecorationType, score: number): CellDecoration {
-  const wobble = stableNoise(`${type}:wobble`, Math.floor(score * 1000), Math.floor(score * 10000));
-  const rotation = type === 'grave' ? (score - 0.5) * 12 : score * 270;
+function createDecoration(score: number): CellDecoration {
+  const wobble = stableNoise('grave:wobble', Math.floor(score * 1000), Math.floor(score * 10000));
   return {
-    type,
-    opacity: type === 'grave' ? 0.78 : 0.52,
-    rotation: `${rotation.toFixed(1)}deg`,
-    scale: type === 'grave' ? 0.76 + wobble * 0.22 : 0.82 + wobble * 0.24,
+    type: 'grave',
+    opacity: 0.78,
+    rotation: `${((score - 0.5) * 12).toFixed(1)}deg`,
+    scale: 0.76 + wobble * 0.22,
   };
 }
 
@@ -66,10 +59,6 @@ function selectDecorations(
     });
 }
 
-function isStartPosition(level: PreparedLevel, row: number, col: number) {
-  return level.start.row === row && level.start.col === col;
-}
-
 function hasWalkableNeighbor(level: PreparedLevel, row: number, col: number) {
   return (
     isWalkable(level, row - 1, col) ||
@@ -79,19 +68,9 @@ function hasWalkableNeighbor(level: PreparedLevel, row: number, col: number) {
   );
 }
 
-function hasWallCorner(level: PreparedLevel, row: number, col: number) {
-  const verticalWall = isWall(level, row - 1, col) || isWall(level, row + 1, col);
-  const horizontalWall = isWall(level, row, col - 1) || isWall(level, row, col + 1);
-  return verticalWall && horizontalWall;
-}
-
 function isWalkable(level: PreparedLevel, row: number, col: number) {
   const cell = level.cells[row]?.[col];
   return Boolean(cell && cell.kind !== 'wall');
-}
-
-function isWall(level: PreparedLevel, row: number, col: number) {
-  return level.cells[row]?.[col]?.kind === 'wall';
 }
 
 function stableNoise(seed: string, row: number, col: number) {

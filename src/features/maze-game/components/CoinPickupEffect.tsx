@@ -80,7 +80,7 @@ export function CoinPickupEffect({
       <PixelPig />
       <View style={styles.bubble}>
         <Text numberOfLines={1} adjustsFontSizeToFit style={styles.bubbleText}>
-          YUMMY! ✨
+          {effect.reward > 1 ? `YUMMY! +${effect.reward} ✨` : 'YUMMY! ✨'}
         </Text>
       </View>
     </Animated.View>

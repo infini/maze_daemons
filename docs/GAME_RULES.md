@@ -73,11 +73,17 @@ Rules:
 - Coins are placed only on cells reachable before entering the exit.
 - A coin behind or beyond the exit is invalid.
 - The level generator validates both exit reachability and coin-before-exit reachability.
+- Standard coins add `1` to the wallet.
+- Every stage contains exactly one blue coin, which adds `5` to the wallet.
+- Standard and blue coin IDs include their row/column position so a changed layout cannot hide an unrelated coin during progress migration.
+- Coins are selected with farthest-point spacing and map-quadrant coverage, preventing them from clustering in one area.
+- Generated stages use all four map quadrants, keep at least the configured spacing, and limit any one quadrant to 60% of the coins.
+- Blue coins are ranked by distance from the start and detour away from the shortest exit route, then placed in a dead end.
 
 Persistence:
 
 - Collected coin keys use `levelId:coinId`.
-- When a newly visible coin is collected, a short blocky pink pig `YUMMY!` effect appears near the coin cell.
+- When a newly visible coin is collected, a short blocky pink pig `YUMMY!` effect appears near the coin cell; blue coins show `+5`.
 - Progress storage key includes `stage-catalog.json` version through `maze-daemons:progress:v{version}`.
 - When the catalog version increases, compatible previous progress is migrated into the newest storage key on launch.
 - If level generation changes coin positions while keeping the same stage and coin IDs, bump the catalog version.
@@ -94,9 +100,19 @@ Persistence:
 - BGM uses a quiet original dark ambient loop.
 - Maze board taps play a short touch sound.
 - Newly collected coins play a short recorded full-belly burp sound with the pink pig `YUMMY!` effect.
+- Blue coins play an unmodified two-second CC0 recorded fart sound instead of the standard coin sound.
 - Stage clear plays a heavy eerie clear sound with the ender dragon `CLEAR` effect.
 - Settings store separate volume controls for BGM, touch, coin, and clear channels.
 - Each audio channel can be previewed directly from settings without playing a stage.
+
+## Maze Themes
+
+- Settings provide three visual themes: `graveyard` (기본), `volcano` (볼케이노), and `forest` (포레스트).
+- Changing theme updates the current maze immediately without resetting the stage, player position, timer, or progress.
+- The selected theme is stored with progress and restored after relaunch.
+- The graveyard theme uses graves, fog, and a dark vignette. Spider webs are not rendered.
+- The volcano theme keeps walkable corridors dark and renders blocked cells as molten-orange walls with a thick deep-red outer outline and no internal grid or crack lines.
+- The forest theme keeps walkable corridors dark and renders blocked cells as medium-green walls with a thick darker-green outer outline and no corridor grid or particle dots.
 
 ## Shop
 

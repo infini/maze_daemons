@@ -8,6 +8,28 @@
   },
   "clearEffectDurationMs": 1000,
   "coinPickupEffectDurationMs": 720,
+  "coins": {
+    "standardReward": 1,
+    "blueReward": 5,
+    "bluePerStage": 1,
+    "bluePlacement": {
+      "detourWeight": 3,
+      "distanceWeight": 1,
+      "minimumCoinDistance": 7,
+      "requireDeadEnd": true
+    },
+    "standardPlacement": {
+      "challengeWeight": 1,
+      "coverageWeight": 2,
+      "maximumQuadrantShare": 0.6,
+      "minimumCoinDistance": 5,
+      "minimumOccupiedQuadrants": 3,
+      "spreadWeight": 4
+    }
+  },
+  "mazeTheme": {
+    "defaultId": "graveyard"
+  },
   "trailVisibleSeconds": 5,
   "movement": {
     "maxTargetCornerTurns": 2,
